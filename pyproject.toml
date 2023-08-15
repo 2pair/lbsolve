@@ -1,0 +1,27 @@
+[project]
+name = "lbsolve"
+version = "0.0.1"
+description = "Solves NYT Letter Boxed puzzles"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+
+[build-system]
+requires = ["setuptools>=43.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest]
+addopts = "--cov=lbsolve --cov-report html"
+
+[tool.black]
+extend-exclude = '''(
+    '\.env.*' |
+    \.venv.*'
+)'''
+
+[tool.coverage.run]
+branch = true
+source = ['ssrc']
+
+[tool.coverage.report]
+fail_under = 95
+skip_empty = true
