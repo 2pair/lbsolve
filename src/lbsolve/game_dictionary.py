@@ -36,13 +36,6 @@ class WordSequence(Sequence):
     def __getitem__(self, index):
         return self._word_sequence[index]
 
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        for word in self._word_sequence:
-            yield word
-
 
 class GameDictionary:
     word_list_file: Path

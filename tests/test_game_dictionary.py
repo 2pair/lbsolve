@@ -1,4 +1,4 @@
-from lbsolve.game_dictionary import GameDictionary, Word
+from lbsolve.game_dictionary import GameDictionary, Word, WordSequence
 
 
 class TestWord:
@@ -22,7 +22,31 @@ class TestWord:
 
 class TestWordSequence:
     def test_init(self):
-        word_sequence = WordSequence('big', 'dirty', 'stinking', 'bass')
+        word_sequence = WordSequence("big", "dirty", "stinking", "bass")
+        assert word_sequence._word_sequence == ("big", "dirty", "stinking", "bass")
+
+    def test_len(self):
+        word_sequence = WordSequence("regrets", "look", "like", "texts")
+        assert len(word_sequence) == 4
+
+    def test_get_item(self):
+        word_sequence = WordSequence("neighbors", "that", "should", "be", "friends")
+        assert word_sequence[0] == "neighbors"
+        assert word_sequence[-1] == "friends"
+        assert word_sequence[1:3] == ("that", "should")
+
+    
+    def test_iter(self):
+        words = ["let", "mom", "sleep"]
+        word_sequence = WordSequence(*words)
+        for index, word in enumerate(word_sequence):
+            assert str(word) == words[index]
+
+    def test_in(self):
+        words = ["no", "sleep", "remix"]
+        word_sequence = WordSequence(*words)
+        for word in words:
+            assert word in word_sequence
 
 
 class TestGameDictionary:
