@@ -1,6 +1,8 @@
 black
 coverage
+mock
 pytest
 pytest-cov
+pytest-mock
 sortedcontainers
 -e .

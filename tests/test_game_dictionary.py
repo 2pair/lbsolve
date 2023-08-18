@@ -1,3 +1,6 @@
+from pathlib import Path
+from pytest_mock import mocker, MockerFixture
+
 from lbsolve.game_dictionary import GameDictionary, Word, WordSequence
 
 
@@ -100,62 +103,27 @@ class TestGameDictionary:
         assert gd.word_is_valid("head") == True
         assert gd.word_is_valid("lead") == True
 
-    def test_add_to_node_none(self):
-        node = {}
-        GameDictionary._add_to_node(node, list())
-        assert node == {None: None}
+    def test_create_from_file_all_good(self, monkeypatch, mocker: MockerFixture):
+        def mock_open_ctx(*args, **kwargs):
+            return ["apple\n", "banana\n", "cherry\n", "date"]
+        
+        def mock_word_is_valid(_word):
+            return True
+        
+        def mock___add_word_to_words_by_first_letter(word):
+            pass
 
-    def test_add_to_node_one(self):
-        node = {}
-        GameDictionary._add_to_node(node, ["g"])
-        assert node == {"g": {None: None}}
+        def mock__add_word_to_words_by_uniques(word):
+            pass
 
-    def test_add_to_node_recursive(self):
-        node = {}
-        GameDictionary._add_to_node(node, ["g", "o"])
-        assert node == {"g": {"o": {None: None}}}
+        #mock_open.return_value = ["apple\n", "banana\n", "cherry\n", "date"]
+        #mocked_open = mocker.mock_open(read_data="apple\nbanana\ncherry\ndate")
+        mock_open = mocker.patch("pathlib:Path.open")
+        mock_open().__enter__().return_value = ["apple\n", "banana\n", "cherry\n", "date"]
+        monkeypatch.setattr(GameDictionary, "word_is_valid", mock_word_is_valid)
+        monkeypatch.setattr(GameDictionary, "_add_word_to_words_by_first_letter", mock___add_word_to_words_by_first_letter)
+        monkeypatch.setattr(GameDictionary, "_add_word_to_words_by_uniques", mock__add_word_to_words_by_uniques)
 
-    def test_add_to_trie_one(self):
-        trie = {}
-        gd = GameDictionary("", "")
-        gd._add_to_trie(trie, "cat")
-        assert trie == {
-            "c": {
-                "a": {
-                    "t": {None: {"unique_letters": {"c", "a", "t"}, "num_uniques": 3}}
-                }
-            }
-        }
-
-    def test_add_to_trie_multi(self):
-        trie = {}
-        gd = GameDictionary("", "")
-        gd._add_to_trie(trie, "cat")
-        gd._add_to_trie(trie, "car")
-        gd._add_to_trie(trie, "cart")
-        gd._add_to_trie(trie, "call")
-
-        assert trie == {
-            "c": {
-                "a": {
-                    "t": {None: {"unique_letters": {"c", "a", "t"}, "num_uniques": 3}},
-                    "r": {
-                        None: {"unique_letters": {"c", "a", "r"}, "num_uniques": 3},
-                        "t": {
-                            None: {
-                                "unique_letters": {"c", "a", "r", "t"},
-                                "num_uniques": 4,
-                            }
-                        },
-                    },
-                    "l": {
-                        "l": {
-                            None: {"unique_letters": {"c", "a", "l"}, "num_uniques": 3}
-                        }
-                    },
-                }
-            }
-        }
-
-
-# TODO test add from file, class creation
+        gd = GameDictionary(Path("./fake_file"), "")
+        gd.create()
+        assert gd.valid_words == 4

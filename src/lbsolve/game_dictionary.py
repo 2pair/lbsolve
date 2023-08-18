@@ -75,64 +75,6 @@ class GameDictionary:
                 return False
         return True
 
-    @classmethod
-    def _add_to_node(cls, parent, letters):
-        """Adds the letters onto the given node."""
-        current_letter = letters[0] if letters else None
-        if current_letter not in parent:
-            if current_letter:
-                parent[current_letter] = dict()
-            else:
-                parent[None] = None
-                return parent
-
-        if current_letter:
-            return cls._add_to_node(parent.get(current_letter), letters[1:])
-
-    def _add_to_trie(self, words_trie, word):
-        """Adds a word to the data structure."""
-        letters = list(word)
-        unique_letters = set(letters)
-        # root node
-        last_node = self._add_to_node(words_trie, letters)
-        # mark word termination
-        last_node[None] = {
-            "unique_letters": unique_letters,
-            "num_uniques": len(unique_letters),
-        }
-
-    def create_trie(self):
-        """One word per line"""
-        self.words_trie = dict()
-        with self.word_list_file.open(mode="r") as word_list:
-            for word in word_list:
-                word = word.strip()
-                if not self.word_is_valid(word):
-                    self.invalid_words += 1
-                    continue
-                self._add_to_trie(self.words_trie, word)
-                self.valid_words += 1
-
-    def _setup_words_by_uniques(self):
-        game_letter_count = 0
-        for letter_group in self.letter_groups:
-            game_letter_count += len(letter_group)
-        for i in range(game_letter_count):
-            self._words_by_uniques[i] = {}
-            for group in self.letter_groups:
-                for letter in group:
-                    self._words_by_uniques[i][letter] = []
-
-    def _setup_words_by_first_letter(self):
-        game_letter_count = 0
-        for letter_group in self.letter_groups:
-            game_letter_count += len(letter_group)
-        for group in self.letter_groups:
-            for letter in group:
-                self._words_by_first_letter[letter] = {}
-                for i in range(game_letter_count):
-                    self._words_by_first_letter[letter][i] = []
-
     @staticmethod
     def _get_first_letter_group(word: Word, parent: dict, default: dict or list):
         if word.first_letter not in parent.keys():
@@ -157,7 +99,7 @@ class GameDictionary:
         first_letter_group = self._get_first_letter_group(word, uniques_group, [])
         first_letter_group.append(word)
 
-    def create_simple(self):
+    def create(self):
         """One word per line"""
         with self.word_list_file.open(mode="r") as word_list:
             for word_line in word_list:

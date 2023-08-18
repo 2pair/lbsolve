@@ -1,15 +1,14 @@
 import pytest
 
-from lbsolve.game_dictionary import Word
+from lbsolve.game_dictionary import Word, WordSequence
 from lbsolve.solution_finder import SolutionCandidate, SolutionFinder
 
 
 class TestSolutionCandidate:
     def test_length(self):
-        sc = SolutionCandidate()
-        sequence = ["cat", "tap", "pat"]
-        sc.sequence = sequence
-        assert sc.length() == len(sequence)
+        sequence = (Word("cat"), Word("tap"), Word("pat"))
+        sc = SolutionCandidate(WordSequence(*sequence))
+        assert len(sc) == len(sequence)
 
     def test_add_word_one(self):
         sc = SolutionCandidate()

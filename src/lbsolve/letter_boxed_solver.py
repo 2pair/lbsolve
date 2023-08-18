@@ -40,7 +40,7 @@ def main():
     start = time.time()
     print("creating game dictionary from file...", end="")
     game_dictionary = GameDictionary(args.word_file, args.letter_groups)
-    game_dictionary.create_simple()
+    game_dictionary.create()
     # TODO: Add blacklist
     print(f"done in {time.time() - start:.3f} seconds")
     print(
