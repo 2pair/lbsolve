@@ -11,19 +11,19 @@ class SolutionCandidate:
 
     sequence: WordSequence
     last_letter: str
-    unique_letters: set
+    unique_letters: frozenset
 
-    def __init__(self, sequence: WordSequence):
+    def __init__(self, sequence: WordSequence) -> None:
         self.sequence = sequence
         self.last_letter = sequence[-1].last_letter
-        self.unique_letters = {
+        self.unique_letters = frozenset(
             letter for word in sequence for letter in word.unique_letters
-        }
+        )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.sequence)
 
-    def clone_and_extend(self, word: Word):
+    def clone_and_extend(self, word: Word) -> WordSequence:
         if self.last_letter and self.last_letter != word.first_letter:
             raise ValueError(
                 "First letter of new word does not match last letter of last word"
@@ -32,23 +32,23 @@ class SolutionCandidate:
 
 
 class CandidateMap(Mapping):
-    candidates_by_uniques_by_last_letter: dict[str, dict[int, list[SolutionCandidate]]]
-    candidates_by_last_letter_by_uniques: dict[int, dict[str, list[SolutionCandidate]]]
+    candidates_by_uniques_by_last_letter: dict[str, dict[int, list[SolutionCandidate]]] = {}
+    candidates_by_last_letter_by_uniques: dict[int, dict[str, list[SolutionCandidate]]] = {}
     count: int = 0
 
     def insert(self, solution: SolutionCandidate):
         solutions_by_uniques = self.candidates_by_uniques_by_last_letter.get(
             solution.last_letter, {}
         )
-        solutions_list = solutions_by_uniques.get(len(solution.unique_letters, []))
+        solutions_list = solutions_by_uniques.get(len(solution.unique_letters), [])
         solutions_list.append(solution)
 
         solutions_by_last_letter = self.candidates_by_last_letter_by_uniques.get(
             solution.unique_letters, {}
         )
-        solutions_list = solutions_by_last_letter.get(len(solution.last_letter, []))
+        solutions_list = solutions_by_last_letter.get(len(solution.last_letter), [])
         solutions_list.append(solution)
-        count += 1
+        self.count += 1
 
     def merge(self, other: CandidateMap):
         pass  # TODO
@@ -57,22 +57,25 @@ class CandidateMap(Mapping):
         self, lookup: str | int | tuple[str, int]
     ) -> dict[list[SolutionCandidate]] | list[SolutionCandidate]:
         if isinstance(lookup, str):
-            return self.candidates_by_last_letter_by_uniques[lookup]
+            return self.candidates_by_uniques_by_last_letter.get(lookup, {})
         if isinstance(lookup, int):
-            return self.candidates_by_uniques_by_last_letter[lookup]
+            return self.candidates_by_last_letter_by_uniques.get(lookup, {})
         if isinstance(lookup, tuple):
-            return self.candidates_by_last_letter_by_uniques[lookup[0]][lookup[1]]
+            return self.candidates_by_last_letter_by_uniques(lookup[0], {}).get([lookup[1]], [])
         raise LookupError("Provided key type is not valid.")
 
     def __iter__(self):
-        return self
+        for candidates_by_uniques in self.candidates_by_uniques_by_last_letter:
+            for candidate_list in candidates_by_uniques:
+                for candidate in candidate_list:
+                    yield candidate
 
     def __len__(self):
         return self.count
 
 
 class SolutionList(Mapping):
-    solutions_by_words: dict[int, list[SolutionCandidate]]
+    solutions_by_words: dict[int, list[SolutionCandidate]] = {}
     count: int = 0
 
     def insert(self, solution: SolutionCandidate):
@@ -88,7 +91,9 @@ class SolutionList(Mapping):
         raise LookupError("Provided key type is not valid.")
 
     def __iter__(self):
-        return self
+        for solution_list in self.solutions_by_words:
+            for solution in solution_list:
+                yield solution
 
     def __len__(self):
         return self.count
@@ -96,16 +101,18 @@ class SolutionList(Mapping):
 
 class SolutionFinder:
     game_dictionary: GameDictionary
+    max_depth: int
     solutions: SolutionList
     _solutions_lock: Lock
     _new_solutions_event: Event
     _solver_thread: Thread
     _thread_should_stop: bool
-    # Only access in thread
+    # Only accessed in thread
     _solution_candidates: CandidateMap
 
-    def __init__(self, game_dictionary: GameDictionary):
+    def __init__(self, game_dictionary: GameDictionary, max_depth: int) -> None:
         self.game_dictionary = game_dictionary
+        self.max_depth = max_depth
         self.solutions = SolutionList()
         self._solutions_lock = Lock()
         self._new_solutions_event = Event()
@@ -121,16 +128,20 @@ class SolutionFinder:
             new_candidates.insert(candidate)
         return new_candidates
 
-    def start(self):
+    def start(self) -> None:
         self._solver_thread.start()
 
-    def stop(self, join: bool = False):
+    def stop(self, join: bool = False) -> None:
         self._thread_should_stop = True
         if join:
             self._solver_thread.join(10)
 
+    def running(self) -> bool:
+        return self._solver_thread.is_alive()
+
     def get_solutions(self) -> SolutionList:
-        self._new_solutions_event.wait()
+        if self.running():
+            self._new_solutions_event.wait()
         with self._solutions_lock:
             ret_val = deepcopy(self.solutions)
         self._new_solutions_event.clear()
@@ -144,7 +155,7 @@ class SolutionFinder:
             for solution in solution_group
         ]
 
-    def _add_new_solution(self, new_solution: SolutionCandidate):
+    def _add_new_solution(self, new_solution: SolutionCandidate) -> None:
         with self._solutions_lock:
             self.solutions.insert(new_solution)
         print(
@@ -181,13 +192,17 @@ class SolutionFinder:
                 found_solutions += 1
         return found_solutions
 
-    def _find_solutions(self):
+    def _find_solutions(self) -> None:
         self._solution_candidates = self._seed_candidates()
         have_solutions = False
+        depth = 0
         while not self._thread_should_stop:
-            found = self._add_to_solution_candidates()
-            if found:
+            depth += 1
+            new_solutions_count = self._add_to_solution_candidates()
+            if new_solutions_count:
                 have_solutions = True
-            if have_solutions and found == 0:
+            if have_solutions and new_solutions_count == 0:
                 # If adding more words didn't help we can stop looking
+                break
+            if depth >= self.max_depth:
                 break

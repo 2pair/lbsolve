@@ -48,9 +48,9 @@ def main():
     )
 
     print("Searching for solutions...", end="")
-    solver = SolutionFinder(game_dictionary)
+    solver = SolutionFinder(game_dictionary, args.max_depth)
     solver.start()
-    while True:
+    while solver.running():
         try:
             solutions = solver.get_solutions()
             if solutions:
@@ -64,3 +64,6 @@ def main():
             break
         finally:
             solver.stop()
+    solutions = solver.get_solutions()
+    for solution in solutions:
+        print(solution)

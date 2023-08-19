@@ -11,30 +11,33 @@ class Word:
     last_letter: str
     unique_letters: set[str]
 
-    def __init__(self, word: str):
+    def __init__(self, word: str) -> None:
         self._word = word
         self.first_letter = self._word[0]
         self.last_letter = self._word[-1]
         self.unique_letters = set(word)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._word
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Word({self._word})"
 
 
 class WordSequence(Sequence):
     _word_sequence: tuple[Word]
 
-    def __init__(self, *words: Word):
-        self._word_sequence = (words)
+    def __init__(self, *words: Word) -> None:
+        self._word_sequence = words
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._word_sequence)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> Word:
         return self._word_sequence[index]
+
+    def __eq__(self, other: object) -> bool:
+        return self._word_sequence == other._word_sequence
 
 
 class GameDictionary:

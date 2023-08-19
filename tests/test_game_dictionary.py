@@ -38,7 +38,6 @@ class TestWordSequence:
         assert word_sequence[-1] == "friends"
         assert word_sequence[1:3] == ("that", "should")
 
-    
     def test_iter(self):
         words = ["let", "mom", "sleep"]
         word_sequence = WordSequence(*words)
@@ -50,6 +49,12 @@ class TestWordSequence:
         word_sequence = WordSequence(*words)
         for word in words:
             assert word in word_sequence
+
+    def test_equal(self):
+        sequence = (Word("cat"), Word("tap"), Word("pat"))
+        word_sequence = WordSequence(*sequence)
+        word_sequence_2 = WordSequence(*sequence)
+        assert word_sequence == word_sequence_2
 
 
 class TestGameDictionary:
@@ -75,6 +80,8 @@ class TestGameDictionary:
             ["j", "k", "l"],
         ]
         gd = GameDictionary("", letter_groups)
+        assert gd.word_is_valid("") == False
+        assert gd.word_is_valid("\t") == False
         assert gd.word_is_valid("pat") == False
         assert gd.word_is_valid("sat") == False
         assert gd.word_is_valid("rat") == False
@@ -103,27 +110,76 @@ class TestGameDictionary:
         assert gd.word_is_valid("head") == True
         assert gd.word_is_valid("lead") == True
 
-    def test_create_from_file_all_good(self, monkeypatch, mocker: MockerFixture):
-        def mock_open_ctx(*args, **kwargs):
-            return ["apple\n", "banana\n", "cherry\n", "date"]
-        
-        def mock_word_is_valid(_word):
+    def test_create_from_file_all_good(self, monkeypatch, tmp_path):
+        tmp_file = tmp_path / "test_dic.txt"
+        tmp_file.write_text("apple\nbanana\ncherry\ndate\n")
+
+        def mock_word_is_valid(_mSelf, _word):
             return True
-        
-        def mock___add_word_to_words_by_first_letter(word):
+
+        def mock___add_word_to_words_by_first_letter(_mSelf, _word):
             pass
 
-        def mock__add_word_to_words_by_uniques(word):
+        def mock__add_word_to_words_by_uniques(_mSelf, _word):
             pass
 
-        #mock_open.return_value = ["apple\n", "banana\n", "cherry\n", "date"]
-        #mocked_open = mocker.mock_open(read_data="apple\nbanana\ncherry\ndate")
-        mock_open = mocker.patch("pathlib:Path.open")
-        mock_open().__enter__().return_value = ["apple\n", "banana\n", "cherry\n", "date"]
         monkeypatch.setattr(GameDictionary, "word_is_valid", mock_word_is_valid)
-        monkeypatch.setattr(GameDictionary, "_add_word_to_words_by_first_letter", mock___add_word_to_words_by_first_letter)
-        monkeypatch.setattr(GameDictionary, "_add_word_to_words_by_uniques", mock__add_word_to_words_by_uniques)
+        monkeypatch.setattr(
+            GameDictionary,
+            "_add_word_to_words_by_first_letter",
+            mock___add_word_to_words_by_first_letter,
+        )
+        monkeypatch.setattr(
+            GameDictionary,
+            "_add_word_to_words_by_uniques",
+            mock__add_word_to_words_by_uniques,
+        )
 
-        gd = GameDictionary(Path("./fake_file"), "")
+        gd = GameDictionary(tmp_file, "")
         gd.create()
         assert gd.valid_words == 4
+
+    def test_create_from_file_white_space(self, monkeypatch, tmp_path):
+        tmp_file = tmp_path / "test_dic.txt"
+        tmp_file.write_text("apple\nbanant  \r\n  cherry\n\tdate\n")
+
+        def mock_word_is_valid(_mSelf, _word):
+            return True
+
+        def mock___add_word_to_words_by_first_letter(mSelf, word):
+            pass
+
+        def mock__add_word_to_words_by_uniques(mSelf, word):
+            pass
+
+        monkeypatch.setattr(GameDictionary, "word_is_valid", mock_word_is_valid)
+        monkeypatch.setattr(
+            GameDictionary,
+            "_add_word_to_words_by_first_letter",
+            mock___add_word_to_words_by_first_letter,
+        )
+        monkeypatch.setattr(
+            GameDictionary,
+            "_add_word_to_words_by_uniques",
+            mock__add_word_to_words_by_uniques,
+        )
+
+        gd = GameDictionary(tmp_file, "")
+        gd.create()
+        assert gd.valid_words == 4
+
+    def test_create_from_file_all_bad(self, monkeypatch, tmp_path):
+        tmp_file = tmp_path / "test_dic.txt"
+        tmp_file.write_text("apple\nbanana\ncherry\ndate\n")
+
+        def mock_word_is_valid(_mSelf, _word):
+            return False
+
+        monkeypatch.setattr(GameDictionary, "word_is_valid", mock_word_is_valid)
+
+        gd = GameDictionary(tmp_file, "")
+        gd.create()
+        assert gd.invalid_words == 4
+
+    def test_ordered_by_uniques(self):
+        pass

@@ -20,7 +20,7 @@ extend-exclude = '''(
 
 [tool.coverage.run]
 branch = true
-source = ['ssrc']
+source = ['src']
 
 [tool.coverage.report]
 fail_under = 95

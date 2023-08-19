@@ -10,39 +10,48 @@ class TestSolutionCandidate:
         sc = SolutionCandidate(WordSequence(*sequence))
         assert len(sc) == len(sequence)
 
-    def test_add_word_one(self):
-        sc = SolutionCandidate()
+    def test_clone_and_extend_one(self):
+        base_word = Word("rear")
+        sc = SolutionCandidate(WordSequence(base_word))
         word = Word("racecar")
-        sc.add_word(word)
-        assert sc.sequence == [word]
-        assert sc.last_letter == "r"
-        assert len(sc.unique_letters) == 4
-        assert sc.unique_letters == {"r", "a", "c", "e"}
+        new_sc = sc.clone_and_extend(word)
+        assert new_sc.sequence == WordSequence(base_word, word)
+        assert new_sc.last_letter == "r"
+        assert len(new_sc.unique_letters) == 4
+        assert new_sc.unique_letters == {"r", "a", "c", "e"}
 
-    def test_add_word_multiple(self):
-        sc = SolutionCandidate()
+    def test_lone_and_extend_multiple(self):
+        base_word = Word("rear")
+        sc = SolutionCandidate(WordSequence(base_word))
         word_1 = Word("racecar")
         word_2 = Word("react")
-        sc.add_word(word_1)
-        sc.add_word(word_2)
-        assert sc.sequence == [word_1, word_2]
-        assert sc.last_letter == "t"
-        assert len(sc.unique_letters) == 5
-        assert sc.unique_letters == {"r", "a", "c", "e", "t"}
+        sc_2 = sc.clone_and_extend(word_1)
+        sc_3 = sc_2.clone_and_extend(word_2)
+        assert sc_3.sequence == WordSequence(base_word, word_1, word_2)
+        assert sc_3.last_letter == "t"
+        assert len(sc_3.unique_letters) == 5
+        assert sc_3.unique_letters == {"r", "a", "c", "e", "t"}
 
-    def test_add_word_value_error(self):
-        sc = SolutionCandidate()
-        word_1 = Word("racecar")
-        word_2 = Word("driver")
-        sc.add_word(word_1)
+    def test_clone_and_extend_value_error(self):
+        sc = SolutionCandidate(WordSequence(Word("racecar")))
         with pytest.raises(ValueError) as ctx:
-            sc.add_word(word_2)
+            sc.clone_and_extend(Word("driver"))
         assert (
             "First letter of new word does not match last letter of last word"
             == str(ctx.value)
         )
 
 
+class TestCandidateMap:
+    def test_insert(self):
+        pass
+
+
+class TestSolutionList:
+    def test_insert(self):
+        pass
+
+
 class TestSolutionFinder:
-    def test_add_to_solutions_list(self):
+    def test_get_solutions(self):
         pass

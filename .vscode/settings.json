@@ -1,10 +1,17 @@
 {
     "python.testing.pytestArgs": [
+        "-verbose",
+        "--cov=src",
+        "--cov-report=html",
+        "--cov-config=pyproject.toml",
         "tests"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "python.analysis.extraPaths": [
         "./src"
+    ],
+    "cSpell.words": [
+        "lbsolve"
     ]
 }
