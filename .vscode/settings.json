@@ -1,6 +1,6 @@
 {
     "python.testing.pytestArgs": [
-        "-verbose",
+        "--verbose",
         "--cov=src",
         "--cov-report=html",
         "--cov-config=pyproject.toml",

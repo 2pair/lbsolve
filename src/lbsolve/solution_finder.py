@@ -2,6 +2,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from copy import deepcopy
 from threading import Event, Lock, Thread
+from typing import Generator
 
 from lbsolve.game_dictionary import GameDictionary, Word, WordSequence
 
@@ -30,28 +31,44 @@ class SolutionCandidate:
             )
         return SolutionCandidate(WordSequence(*self.sequence, word))
 
+    def __eq__(self, other: SolutionCandidate) -> bool:
+        return self.sequence == other.sequence
+
 
 class CandidateMap(Mapping):
-    candidates_by_uniques_by_last_letter: dict[str, dict[int, list[SolutionCandidate]]] = {}
-    candidates_by_last_letter_by_uniques: dict[int, dict[str, list[SolutionCandidate]]] = {}
-    count: int = 0
+    candidates_by_uniques_by_last_letter: dict[str, dict[int, list[SolutionCandidate]]]
+    candidates_by_last_letter_by_uniques: dict[int, dict[str, list[SolutionCandidate]]]
+    linear_candidates: list[SolutionCandidate]
+    count: int
 
-    def insert(self, solution: SolutionCandidate):
-        solutions_by_uniques = self.candidates_by_uniques_by_last_letter.get(
-            solution.last_letter, {}
-        )
-        solutions_list = solutions_by_uniques.get(len(solution.unique_letters), [])
-        solutions_list.append(solution)
+    def __init__(self) -> None:
+        super().__init__()
+        self.count = 0
+        self.candidates_by_uniques_by_last_letter = {}
+        self.candidates_by_last_letter_by_uniques = {}
+        self.linear_candidates = []
 
-        solutions_by_last_letter = self.candidates_by_last_letter_by_uniques.get(
-            solution.unique_letters, {}
+    def insert(self, candidate: SolutionCandidate) -> None:
+        solutions_by_uniques = self.candidates_by_uniques_by_last_letter.setdefault(
+            candidate.last_letter, {}
         )
-        solutions_list = solutions_by_last_letter.get(len(solution.last_letter), [])
-        solutions_list.append(solution)
+        solutions_list = solutions_by_uniques.setdefault(
+            len(candidate.unique_letters), []
+        )
+        solutions_list.append(candidate)
+
+        solutions_by_last_letter = self.candidates_by_last_letter_by_uniques.setdefault(
+            len(candidate.unique_letters), {}
+        )
+        solutions_list = solutions_by_last_letter.setdefault(candidate.last_letter, [])
+        solutions_list.append(candidate)
+
+        self.linear_candidates.append(candidate)
         self.count += 1
 
-    def merge(self, other: CandidateMap):
-        pass  # TODO
+    def merge(self, other: CandidateMap) -> None:
+        for candidate in other:
+            self.insert(candidate)
 
     def __getitem__(
         self, lookup: str | int | tuple[str, int]
@@ -61,41 +78,51 @@ class CandidateMap(Mapping):
         if isinstance(lookup, int):
             return self.candidates_by_last_letter_by_uniques.get(lookup, {})
         if isinstance(lookup, tuple):
-            return self.candidates_by_last_letter_by_uniques(lookup[0], {}).get([lookup[1]], [])
+            if isinstance(lookup[0], str) and isinstance(lookup[1], int):
+                return self.candidates_by_uniques_by_last_letter.get(lookup[0], {}).get(
+                    lookup[1], []
+                )
+            if isinstance(lookup[0], int) and isinstance(lookup[1], str):
+                return self.candidates_by_last_letter_by_uniques.get(lookup[0], {}).get(
+                    lookup[1], []
+                )
         raise LookupError("Provided key type is not valid.")
 
-    def __iter__(self):
-        for candidates_by_uniques in self.candidates_by_uniques_by_last_letter:
-            for candidate_list in candidates_by_uniques:
-                for candidate in candidate_list:
-                    yield candidate
+    def __iter__(self) -> Generator[SolutionCandidate]:
+        for candidate in self.linear_candidates:
+            yield candidate
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.count
 
 
 class SolutionList(Mapping):
-    solutions_by_words: dict[int, list[SolutionCandidate]] = {}
-    count: int = 0
+    solutions_by_words: dict[int, list[SolutionCandidate]]
+    count: int
 
-    def insert(self, solution: SolutionCandidate):
-        solutions_list = self.solutions_by_words.get(len(solution), [])
+    def __init__(self) -> None:
+        super().__init__()
+        self.solutions_by_words = {}
+        self.count = 0
+
+    def insert(self, solution: SolutionCandidate) -> None:
+        solutions_list = self.solutions_by_words.setdefault(len(solution), [])
         solutions_list.append(solution)
-        count += 1
+        self.count += 1
 
-    def __getitem__(self, lookup: int | tuple[int, int]):
+    def __getitem__(self, lookup: int | tuple[int, int]) -> SolutionCandidate:
         if isinstance(lookup, int):
             return self.solutions_by_words[lookup]
         if isinstance(lookup, tuple):
             return self.solutions_by_words[lookup[0]][lookup[1]]
         raise LookupError("Provided key type is not valid.")
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[SolutionCandidate]:
         for solution_list in self.solutions_by_words:
             for solution in solution_list:
                 yield solution
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.count
 
 

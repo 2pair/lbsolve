@@ -28,6 +28,7 @@ class WordSequence(Sequence):
     _word_sequence: tuple[Word]
 
     def __init__(self, *words: Word) -> None:
+        super().__init__()
         self._word_sequence = words
 
     def __len__(self) -> int:
