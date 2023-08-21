@@ -9,9 +9,9 @@ license = {file = "LICENSE"}
 requires = ["setuptools>=43.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.pytest]
+[tool.pytest.ini_options]
 addopts = "--cov=lbsolve --cov-report html"
-pythonpath = .
+pythonpath = "."
 
 [tool.black]
 extend-exclude = '''(

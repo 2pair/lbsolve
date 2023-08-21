@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
 from threading import Event, Lock, Thread
@@ -97,16 +98,22 @@ class CandidateMap(Mapping):
 
 
 class SolutionList(Mapping):
-    solutions_by_words: dict[int, list[SolutionCandidate]]
+    solutions_by_words: OrderedDict[int, list[SolutionCandidate]]
     count: int
 
     def __init__(self) -> None:
         super().__init__()
-        self.solutions_by_words = {}
+        self.solutions_by_words = OrderedDict()
         self.count = 0
 
     def insert(self, solution: SolutionCandidate) -> None:
         solutions_list = self.solutions_by_words.setdefault(len(solution), [])
+        if not solutions_list:
+            # maintain ascending key order
+            assending_keys = sorted(self.solutions_by_words.keys())
+            for key in assending_keys:
+                self.solutions_by_words.move_to_end(key)
+
         solutions_list.append(solution)
         self.count += 1
 
@@ -118,7 +125,7 @@ class SolutionList(Mapping):
         raise LookupError("Provided key type is not valid.")
 
     def __iter__(self) -> Generator[SolutionCandidate]:
-        for solution_list in self.solutions_by_words:
+        for solution_list in self.solutions_by_words.values():
             for solution in solution_list:
                 yield solution
 
@@ -137,7 +144,7 @@ class SolutionFinder:
     # Only accessed in thread
     _solution_candidates: CandidateMap
 
-    def __init__(self, game_dictionary: GameDictionary, max_depth: int) -> None:
+    def __init__(self, game_dictionary: GameDictionary, max_depth: int=None) -> None:
         self.game_dictionary = game_dictionary
         self.max_depth = max_depth
         self.solutions = SolutionList()
@@ -231,5 +238,5 @@ class SolutionFinder:
             if have_solutions and new_solutions_count == 0:
                 # If adding more words didn't help we can stop looking
                 break
-            if depth >= self.max_depth:
+            if self.max_depth and depth >= self.max_depth:
                 break
