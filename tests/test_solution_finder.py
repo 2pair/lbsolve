@@ -163,7 +163,6 @@ class TestSolutionList:
         sl.insert(self.solutions[0])
         assert list(sl.solutions_by_words.keys())[0] == 2
         assert list(sl.solutions_by_words.keys())[1] == 3
-       
 
     def test_insert(self):
         sl = SolutionList()
@@ -206,22 +205,20 @@ class TestSolutionList:
         sl = SolutionList()
         sl.insert(self.solutions[2])
         sl.insert(self.solutions[0])
-        assert len(sl) == 2     
+        assert len(sl) == 2
 
 
 class TestSolutionFinder:
-
     @pytest.fixture
     def mock_game_dictionary(self, mocker):
-        return mocker.patch(
-            "lbsolve.solution_finder.GameDictionary"
-        )
+        return mocker.patch("lbsolve.solution_finder.GameDictionary")
 
     def test__seed_candidates(self, monkeypatch):
         mock_dictionary = [Word("spoil"), Word("milk"), Word("jug")]
+
         def mock_obu():
             return mock_dictionary
-        
+
         gd = GameDictionary("file", "letters")
         monkeypatch.setattr(gd, "ordered_by_uniques", mock_obu)
         sf = SolutionFinder(gd)
@@ -233,40 +230,29 @@ class TestSolutionFinder:
             assert candidate.sequence[0] == mock_dictionary[index]
 
     def test_start(self, mocker, mock_game_dictionary):
-        mock_start = mocker.patch(
-            "lbsolve.solution_finder.Thread.start"
-            )
+        mock_start = mocker.patch("lbsolve.solution_finder.Thread.start")
         sf = SolutionFinder(mock_game_dictionary)
         sf.start()
         assert mock_start.called_once()
 
     def test_stop_and_join(self, mocker, mock_game_dictionary):
-        mock_join = mocker.patch(
-            "lbsolve.solution_finder.Thread.join"
-            )
+        mock_join = mocker.patch("lbsolve.solution_finder.Thread.join")
         sf = SolutionFinder(mock_game_dictionary)
         sf.stop()
         assert mock_join.called_once_with(10)
-        assert sf._thread_should_stop == True
+        assert sf._thread_should_stop is True
 
     def test_stop_and_return(self, mocker, mock_game_dictionary):
-        mock_join = mocker.patch(
-            "lbsolve.solution_finder.Thread.join"
-            )
+        mock_join = mocker.patch("lbsolve.solution_finder.Thread.join")
         sf = SolutionFinder(mock_game_dictionary)
         sf.stop(join=False)
         assert not mock_join.called
-        assert sf._thread_should_stop == True
+        assert sf._thread_should_stop is True
 
     def test_running(self, mocker, mock_game_dictionary):
-        mock_is_alive = mocker.patch(
-            "lbsolve.solution_finder.Thread.is_alive"
-            )
+        mock_is_alive = mocker.patch("lbsolve.solution_finder.Thread.is_alive")
         mock_is_alive.return_value = True
         sf = SolutionFinder(mock_game_dictionary)
         running = sf.running()
-        assert running == True
+        assert running is True
         assert mock_is_alive.called_once()
-
-        
-

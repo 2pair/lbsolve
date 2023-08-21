@@ -144,7 +144,7 @@ class SolutionFinder:
     # Only accessed in thread
     _solution_candidates: CandidateMap
 
-    def __init__(self, game_dictionary: GameDictionary, max_depth: int=None) -> None:
+    def __init__(self, game_dictionary: GameDictionary, max_depth: int = None) -> None:
         self.game_dictionary = game_dictionary
         self.max_depth = max_depth
         self.solutions = SolutionList()
@@ -193,7 +193,8 @@ class SolutionFinder:
         with self._solutions_lock:
             self.solutions.insert(new_solution)
         print(
-            f"Found new solution: {' - '.join([str(word) for word in new_solution.sequence])}"
+            f"Found new solution: "
+            f"{' - '.join([str(word) for word in new_solution.sequence])}"
         )
         self._new_solutions_event.set()
 

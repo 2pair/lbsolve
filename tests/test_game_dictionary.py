@@ -1,6 +1,3 @@
-from pathlib import Path
-from pytest_mock import mocker, MockerFixture
-
 from lbsolve.game_dictionary import GameDictionary, Word, WordSequence
 
 
@@ -80,11 +77,11 @@ class TestGameDictionary:
             ["j", "k", "l"],
         ]
         gd = GameDictionary("", letter_groups)
-        assert gd.word_is_valid("") == False
-        assert gd.word_is_valid("\t") == False
-        assert gd.word_is_valid("pat") == False
-        assert gd.word_is_valid("sat") == False
-        assert gd.word_is_valid("rat") == False
+        assert gd.word_is_valid("") is False
+        assert gd.word_is_valid("\t") is False
+        assert gd.word_is_valid("pat") is False
+        assert gd.word_is_valid("sat") is False
+        assert gd.word_is_valid("rat") is False
 
     def test_word_is_valid_colocated_letters(self):
         letter_groups = [
@@ -94,9 +91,9 @@ class TestGameDictionary:
             ["j", "k", "l"],
         ]
         gd = GameDictionary("", letter_groups)
-        assert gd.word_is_valid("bat") == False
-        assert gd.word_is_valid("hide") == False
-        assert gd.word_is_valid("lack") == False
+        assert gd.word_is_valid("bat") is False
+        assert gd.word_is_valid("hide") is False
+        assert gd.word_is_valid("lack") is False
 
     def test_word_is_valid_true(self):
         letter_groups = [
@@ -106,9 +103,9 @@ class TestGameDictionary:
             ["j", "k", "l"],
         ]
         gd = GameDictionary("", letter_groups)
-        assert gd.word_is_valid("beg") == True
-        assert gd.word_is_valid("head") == True
-        assert gd.word_is_valid("lead") == True
+        assert gd.word_is_valid("beg") is True
+        assert gd.word_is_valid("head") is True
+        assert gd.word_is_valid("lead") is True
 
     def test_create_from_file_all_good(self, monkeypatch, tmp_path):
         tmp_file = tmp_path / "test_dic.txt"

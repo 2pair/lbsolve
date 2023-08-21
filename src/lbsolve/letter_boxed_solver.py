@@ -44,7 +44,8 @@ def main():
     # TODO: Add blacklist
     print(f"done in {time.time() - start:.3f} seconds")
     print(
-        f"from {game_dictionary.valid_words + game_dictionary.invalid_words} input words found {game_dictionary.valid_words} valid words"
+        f"from {game_dictionary.valid_words + game_dictionary.invalid_words} "
+        f"input words found {game_dictionary.valid_words} valid words"
     )
 
     print("Searching for solutions...", end="")
@@ -55,7 +56,8 @@ def main():
             solutions = solver.get_solutions()
             if solutions:
                 print(
-                    f"found {len(solutions)} solutions. current best solution is {' - '.join(solutions[0])}",
+                    f"found {len(solutions)} solutions. current best solution "
+                    f"is {' - '.join(solutions[0])}",
                     end="\r",
                     flush=True,
                 )
