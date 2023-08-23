@@ -21,6 +21,7 @@ SOLUTIONS = [
     SolutionCandidate(WordSequence(Word("visited"), Word("doctor"), Word("rash"))),
 ]
 
+
 class TestSolutionCandidate:
     def test_length(self):
         sequence = (Word("cat"), Word("tap"), Word("pat"))

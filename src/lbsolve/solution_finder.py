@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
-from threading import Event, Lock, Thread
+from threading import Lock, Thread
 from typing import Generator
 
 from lbsolve.game_dictionary import GameDictionary, Word, WordSequence

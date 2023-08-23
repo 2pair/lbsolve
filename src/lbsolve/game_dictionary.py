@@ -26,6 +26,7 @@ class Word:
     def __eq__(self, other) -> bool:
         return self._word == other._word
 
+
 class WordSequence(Sequence):
     _word_sequence: tuple[Word]
 
