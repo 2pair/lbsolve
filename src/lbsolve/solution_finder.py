@@ -110,12 +110,19 @@ class SolutionList(Mapping):
         solutions_list = self.solutions_by_words.setdefault(len(solution), [])
         if not solutions_list:
             # maintain ascending key order
-            assending_keys = sorted(self.solutions_by_words.keys())
-            for key in assending_keys:
+            ascending_keys = sorted(self.solutions_by_words.keys())
+            for key in ascending_keys:
                 self.solutions_by_words.move_to_end(key)
 
         solutions_list.append(solution)
         self.count += 1
+
+    def flatten(self) -> list[SolutionCandidate]:
+        return [
+            solution
+            for solution_group in self.solutions_by_words.values()
+            for solution in solution_group
+        ]
 
     def __getitem__(self, lookup: int | tuple[int, int]) -> SolutionCandidate:
         if isinstance(lookup, int):
@@ -138,7 +145,6 @@ class SolutionFinder:
     max_depth: int
     solutions: SolutionList
     _solutions_lock: Lock
-    _new_solutions_event: Event
     _solver_thread: Thread
     _thread_should_stop: bool
     # Only accessed in thread
@@ -149,7 +155,6 @@ class SolutionFinder:
         self.max_depth = max_depth
         self.solutions = SolutionList()
         self._solutions_lock = Lock()
-        self._new_solutions_event = Event()
         self._solver_thread = Thread(target=self._find_solutions, daemon=True)
         self._thread_should_stop = False
         self._solution_candidates = CandidateMap()
@@ -174,20 +179,9 @@ class SolutionFinder:
         return self._solver_thread.is_alive()
 
     def get_solutions(self) -> SolutionList:
-        if self.running():
-            self._new_solutions_event.wait()
         with self._solutions_lock:
             ret_val = deepcopy(self.solutions)
-        self._new_solutions_event.clear()
         return ret_val
-
-    def get_solutions_flat(self) -> list:
-        solutions = self.get_solutions()
-        return [
-            solution
-            for solution_group in solutions.values()
-            for solution in solution_group
-        ]
 
     def _add_new_solution(self, new_solution: SolutionCandidate) -> None:
         with self._solutions_lock:
@@ -196,18 +190,18 @@ class SolutionFinder:
             f"Found new solution: "
             f"{' - '.join([str(word) for word in new_solution.sequence])}"
         )
-        self._new_solutions_event.set()
 
+    @staticmethod
     def _add_word_to_solution_candidates(
-        self, solution_candidates: CandidateMap, new_word: Word
+        solution_candidates: CandidateMap, new_word: Word
     ) -> CandidateMap:
         new_solution_candidates = CandidateMap()
         for solution_candidate in solution_candidates:
-            candidate = solution_candidate.insert(new_word)
-            new_solution_candidates.insert(candidate)
+            new_candidate = solution_candidate.clone_and_extend(new_word)
+            new_solution_candidates.insert(new_candidate)
         return new_solution_candidates
 
-    def _add_to_solution_candidates(self) -> int:
+    def _mutate_solution_candidates(self) -> int:
         found_solutions = 0
         num_game_letters = self.game_dictionary.get_letter_candidates()
         new_candidates = CandidateMap()
@@ -221,10 +215,11 @@ class SolutionFinder:
         self._solution_candidates.merge(new_candidates)
 
         for new_candidate in new_candidates:
-            if len(new_candidate.unique_letters) == num_game_letters:
-                new_solution = new_candidate
-                self._add_new_solution(new_solution)
-                found_solutions += 1
+            if len(new_candidate.unique_letters) != num_game_letters:
+                continue
+            new_solution = new_candidate
+            self._add_new_solution(new_solution)
+            found_solutions += 1
         return found_solutions
 
     def _find_solutions(self) -> None:
@@ -233,7 +228,7 @@ class SolutionFinder:
         depth = 0
         while not self._thread_should_stop:
             depth += 1
-            new_solutions_count = self._add_to_solution_candidates()
+            new_solutions_count = self._mutate_solution_candidates()
             if new_solutions_count:
                 have_solutions = True
             if have_solutions and new_solutions_count == 0:

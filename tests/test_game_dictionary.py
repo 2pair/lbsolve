@@ -1,3 +1,4 @@
+from copy import deepcopy
 from lbsolve.game_dictionary import GameDictionary, Word, WordSequence
 
 
@@ -18,6 +19,11 @@ class TestWord:
         raw_word = "ferocious"
         word = Word(raw_word)
         assert repr(word) == f"Word({raw_word})"
+
+    def test_eq(self):
+        word = Word("soliloquy")
+        word_copy = deepcopy(word)
+        assert word == word_copy
 
 
 class TestWordSequence:
@@ -50,8 +56,8 @@ class TestWordSequence:
     def test_equal(self):
         sequence = (Word("cat"), Word("tap"), Word("pat"))
         word_sequence = WordSequence(*sequence)
-        word_sequence_2 = WordSequence(*sequence)
-        assert word_sequence == word_sequence_2
+        word_sequence_copy = deepcopy(word_sequence)
+        assert word_sequence == word_sequence_copy
 
 
 class TestGameDictionary:

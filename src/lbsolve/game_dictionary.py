@@ -23,6 +23,8 @@ class Word:
     def __repr__(self) -> str:
         return f"Word({self._word})"
 
+    def __eq__(self, other) -> bool:
+        return self._word == other._word
 
 class WordSequence(Sequence):
     _word_sequence: tuple[Word]
