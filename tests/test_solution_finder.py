@@ -142,7 +142,7 @@ class TestCandidateMap:
             cm["t", "l"]
             assert "Provided key type is not valid." == str(ctx.value)
 
-    def test_merge(self):
+    def test_merge_candidate_map(self):
         cm1 = CandidateMap()
         cm1.insert(CANDIDATES[0])
         cm1.insert(CANDIDATES[1])
@@ -152,6 +152,14 @@ class TestCandidateMap:
         cm1.merge(cm2)
         assert len(cm1) == 4
         for index, candidate in enumerate(cm1):
+            assert candidate == CANDIDATES[index]
+
+    def test_merge_list(self):
+        candidate_list = [CANDIDATES[0], CANDIDATES[1]]
+        cm = CandidateMap()
+        cm.merge(candidate_list)
+        assert len(cm) == 2
+        for index, candidate in enumerate(cm):
             assert candidate == CANDIDATES[index]
 
 
@@ -221,7 +229,9 @@ class TestSolutionList:
 class TestSolutionFinder:
     @pytest.fixture
     def mock_game_dictionary(self, mocker):
-        return mocker.patch("lbsolve.solution_finder.GameDictionary")
+        m_dictionary = mocker.patch("lbsolve.solution_finder.GameDictionary")
+        m_dictionary.get_letter_candidates.return_value = 12
+        return m_dictionary
 
     def test__seed_candidates(self, monkeypatch):
         mock_dictionary = [Word("spoil"), Word("milk"), Word("jug")]
@@ -300,3 +310,15 @@ class TestSolutionFinder:
             initial_word_sequence = CANDIDATES[index].sequence._word_sequence
             new_word_sequence = candidate.sequence._word_sequence
             assert new_word_sequence == initial_word_sequence + (new_word,)
+
+    def test__promote_candidates(self, mock_game_dictionary):
+        cm = CandidateMap()
+        cm.insert(CANDIDATES[0])
+        cm.insert(SOLUTIONS[0])
+        cm.insert(SOLUTIONS[1])
+        sf = SolutionFinder(mock_game_dictionary)
+        new_solutions = sf._promote_candidates(cm)
+        assert len(new_solutions) == 2
+        assert CANDIDATES[0] not in new_solutions
+        for index, solution in enumerate(new_solutions):
+            assert solution == SOLUTIONS[index]

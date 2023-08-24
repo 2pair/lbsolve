@@ -1,3 +1,3 @@
 lint:
-	flake8 &&\
-	python -m black --config pyproject.toml .
+	python -m black --config pyproject.toml . &&\
+	flake8

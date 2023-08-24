@@ -3,7 +3,7 @@ from collections import OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
 from threading import Lock, Thread
-from typing import Generator
+from typing import Generator, Iterable
 
 from lbsolve.game_dictionary import GameDictionary, Word, WordSequence
 
@@ -67,7 +67,7 @@ class CandidateMap(Mapping):
         self.linear_candidates.append(candidate)
         self.count += 1
 
-    def merge(self, other: CandidateMap) -> None:
+    def merge(self, other: Iterable) -> None:
         for candidate in other:
             self.insert(candidate)
 
@@ -201,26 +201,31 @@ class SolutionFinder:
             new_solution_candidates.insert(new_candidate)
         return new_solution_candidates
 
-    def _mutate_solution_candidates(self) -> int:
-        found_solutions = 0
+    def _promote_candidates(self, candidates: CandidateMap) -> list[SolutionCandidate]:
+        new_solutions = []
         num_game_letters = self.game_dictionary.get_letter_candidates()
+        for new_candidate in candidates:
+            if len(new_candidate.unique_letters) != num_game_letters:
+                continue
+            new_solutions.append(new_candidate)
+            self._add_new_solution(new_solutions[-1])
+        return new_solutions
+
+    def _mutate_solution_candidates(self) -> int:
         new_candidates = CandidateMap()
-        words_by_letter = self.game_dictionary.ordered_by_first_letter()
-        for word in words_by_letter:
+        for word in self.game_dictionary.ordered_by_first_letter():
             partial_solution_group = self._solution_candidates[word.first_letter]
             child_candidates = self._add_word_to_solution_candidates(
                 partial_solution_group, word
             )
             new_candidates.merge(child_candidates)
-        self._solution_candidates.merge(new_candidates)
 
-        for new_candidate in new_candidates:
-            if len(new_candidate.unique_letters) != num_game_letters:
-                continue
-            new_solution = new_candidate
-            self._add_new_solution(new_solution)
-            found_solutions += 1
-        return found_solutions
+        new_solutions = self._promote_candidates(new_candidates)
+        partial_solutions = filter(
+            lambda candidate: candidate not in new_solutions, new_candidates
+        )
+        self._solution_candidates.merge(partial_solutions)
+        return len(new_solutions)
 
     def _find_solutions(self) -> None:
         self._solution_candidates = self._seed_candidates()
