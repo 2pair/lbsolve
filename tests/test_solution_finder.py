@@ -1,6 +1,6 @@
 import pytest
 
-from lbsolve.game_dictionary import GameDictionary, Word, WordSequence
+from lbsolve.game_dictionary import Word, WordSequence
 from lbsolve.solution_finder import (
     CandidateMap,
     SolutionCandidate,
@@ -8,23 +8,24 @@ from lbsolve.solution_finder import (
     SolutionList,
 )
 
+
 CANDIDATES = [
-    SolutionCandidate(WordSequence(Word("cat"), Word("tap"), Word("pat"))),
-    SolutionCandidate(WordSequence(Word("rap"), Word("par"), Word("rat"))),
-    SolutionCandidate(WordSequence(Word("car"), Word("rig"), Word("gal"))),
-    SolutionCandidate(WordSequence(Word("car"), Word("rip"), Word("pat"))),
+    SolutionCandidate(WordSequence(*Word.factory("cat", "tap", "pat"))),
+    SolutionCandidate(WordSequence(*Word.factory("rap", "par", "rat"))),
+    SolutionCandidate(WordSequence(*Word.factory("car", "rig", "gal"))),
+    SolutionCandidate(WordSequence(*Word.factory("car", "rip", "pat"))),
 ]
 
 SOLUTIONS = [
-    SolutionCandidate(WordSequence(Word("consequential"), Word("lap"))),
-    SolutionCandidate(WordSequence(Word("forgiver"), Word("reconciliation"))),
-    SolutionCandidate(WordSequence(Word("visited"), Word("doctor"), Word("rash"))),
+    SolutionCandidate(WordSequence(*Word.factory("consequential", "lap"))),
+    SolutionCandidate(WordSequence(*Word.factory("forgiver", "reconciliation"))),
+    SolutionCandidate(WordSequence(*Word.factory("visited", "doctor", "rash"))),
 ]
 
 
 class TestSolutionCandidate:
     def test_length(self):
-        sequence = (Word("cat"), Word("tap"), Word("pat"))
+        sequence = Word.factory("cat", "tap", "pat")
         sc = SolutionCandidate(WordSequence(*sequence))
         assert len(sc) == len(sequence)
 
@@ -60,11 +61,16 @@ class TestSolutionCandidate:
         )
 
     def test_eq(self):
-        sequence = (Word("cat"), Word("tap"), Word("pat"))
+        sequence = Word.factory("cat", "tap", "pat")
         sc1 = SolutionCandidate(WordSequence(*sequence))
         sc2 = SolutionCandidate(WordSequence(*sequence))
         assert sc1 == sc2
         assert sc1 is not sc2
+
+    def test_to_str(self):
+        words = ["cake", "eating", "guy"]
+        sc = SolutionCandidate(WordSequence(*Word.factory(*words)))
+        assert str(sc) == "-".join(words)
 
 
 class TestCandidateMap:
@@ -233,15 +239,10 @@ class TestSolutionFinder:
         m_dictionary.get_letter_candidates.return_value = 12
         return m_dictionary
 
-    def test__seed_candidates(self, monkeypatch):
-        mock_dictionary = [Word("spoil"), Word("milk"), Word("jug")]
-
-        def mock_obu():
-            return mock_dictionary
-
-        gd = GameDictionary("file", "letters")
-        monkeypatch.setattr(gd, "ordered_by_uniques", mock_obu)
-        sf = SolutionFinder(gd)
+    def test__seed_candidates(self, mock_game_dictionary):
+        mock_dictionary = [Word("jug"), Word("milk"), Word("spoil")]
+        mock_game_dictionary.ordered_by_first_letter.return_value = mock_dictionary
+        sf = SolutionFinder(mock_game_dictionary)
         new_candidates = sf._seed_candidates()
         assert len(new_candidates) == 3
         for index, candidate in enumerate(new_candidates):
@@ -311,6 +312,20 @@ class TestSolutionFinder:
             new_word_sequence = candidate.sequence._word_sequence
             assert new_word_sequence == initial_word_sequence + (new_word,)
 
+    def test_add_word_to_solution_candidates_twice(self):
+        cm = CandidateMap()
+        cm.insert(CANDIDATES[0])
+        new_word = Word("trot")
+        new_candidates = SolutionFinder._add_word_to_solution_candidates(cm, new_word)
+        initial_word_sequence = CANDIDATES[0].sequence._word_sequence
+        candidates_by_uniques = list(new_candidates["t"].values())
+        new_word_sequence = candidates_by_uniques[0][0].sequence._word_sequence
+        assert new_word_sequence == initial_word_sequence + (new_word,)
+        no_candidates = SolutionFinder._add_word_to_solution_candidates(
+            new_candidates, new_word
+        )
+        assert len(no_candidates) == 0
+
     def test__promote_candidates(self, mock_game_dictionary):
         cm = CandidateMap()
         cm.insert(CANDIDATES[0])
@@ -322,3 +337,51 @@ class TestSolutionFinder:
         assert CANDIDATES[0] not in new_solutions
         for index, solution in enumerate(new_solutions):
             assert solution == SOLUTIONS[index]
+
+    def test__mutate_solution_candidates(self, mock_game_dictionary):
+        word_list = [
+            "car",
+            "care",
+            "cold",
+            "could",
+            "dare",
+            "drain",
+            "end",
+            "noun",
+            "nearly",
+        ]
+        # Shortest solution: could -> drain -> nearly
+        # Longest solution:  care  -> end -> drain -> noun -> nearly
+        # Shortest dead ends: car, nearly
+        words = Word.factory(*word_list)
+        mock_game_dictionary.ordered_by_first_letter.return_value = words
+        sf = SolutionFinder(mock_game_dictionary)
+        sf._solution_candidates = sf._seed_candidates()
+        assert len(sf._solution_candidates) == len(word_list)
+        sf._mutate_solution_candidates()
+        assert len(sf._solution_candidates) == 20
+        assert len(sf.solutions) == 0
+        sf._mutate_solution_candidates()
+        for candidate in sf._solution_candidates:
+            print(candidate)
+        assert len(sf._solution_candidates) == 42
+        assert len(sf.solutions) == 1
+        assert str(sf.solutions[3, 0]) == "could-drain-nothing"
+        sf._mutate_solution_candidates()
+        assert len(sf._solution_candidates) == 82
+        sf._mutate_solution_candidates()
+        assert len(sf._solution_candidates) == 151
+        sf._mutate_solution_candidates()
+        assert len(sf._solution_candidates) == 266
+        sf._mutate_solution_candidates()
+        assert len(sf._solution_candidates) == 452
+        sf._mutate_solution_candidates()
+        assert len(sf._solution_candidates) == 744
+        sf._mutate_solution_candidates()
+        assert len(sf._solution_candidates) == 1189
+        sf._mutate_solution_candidates()
+        assert len(sf._solution_candidates) == 1848
+        sf._mutate_solution_candidates()
+        assert len(sf._solution_candidates) == 2798
+        sf._mutate_solution_candidates()
+        assert len(sf._solution_candidates) == 2798

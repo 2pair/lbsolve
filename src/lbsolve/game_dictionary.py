@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -12,6 +13,10 @@ class Word:
     unique_letters: set[str]
 
     def __init__(self, word: str) -> None:
+        if not isinstance(word, str):
+            raise TypeError(
+                f"'word' should be type 'str', not '{type(word).__name__}'."
+            )
         self._word = word
         self.first_letter = self._word[0]
         self.last_letter = self._word[-1]
@@ -26,12 +31,23 @@ class Word:
     def __eq__(self, other) -> bool:
         return self._word == other._word
 
+    @staticmethod
+    def factory(*words: str) -> list[Word]:
+        return [Word(word) for word in words]
+
 
 class WordSequence(Sequence):
     _word_sequence: tuple[Word]
 
     def __init__(self, *words: Word) -> None:
         super().__init__()
+        if not words:
+            raise IndexError("One or more word expected.")
+        if not isinstance(words[0], Word):
+            raise TypeError(
+                f"'words' should be instances of type 'Word', "
+                f"not '{type(words[0]).__name__}'."
+            )
         self._word_sequence = words
 
     def __len__(self) -> int:
@@ -49,29 +65,27 @@ class GameDictionary:
     letter_groups: tuple[tuple[str, 3], 4]
     valid_words: int
     invalid_words: int
-    word_trie: dict
     _words_by_first_letter: dict[str, dict[int, str]]
     _words_by_uniques: dict[int, dict[str, str]]
 
-    def __init__(self, word_list_file: Path, game_letter_groups):
+    def __init__(self, word_list_file: Path, game_letter_groups) -> None:
         self.word_list_file = word_list_file
         self.letter_groups = game_letter_groups
         self.valid_words = 0
         self.invalid_words = 0
-        self.word_trie = {}
         self._words_by_first_letter = {}
         self._words_by_uniques = {}
 
-    def get_letter_candidates(self, current_letter=""):
+    def get_letter_candidates(self, current_letter="") -> list[tuple[str]]:
         """Letters on sides that don't contain this letter."""
-        candidates = list()
+        candidates = []
         for letter_group in self.letter_groups:
             if current_letter in letter_group:
                 continue
             candidates.extend(letter_group)
         return candidates
 
-    def word_is_valid(self, word):
+    def word_is_valid(self, word: str) -> bool:
         """Ensure word can be used in game."""
         if len(word) < MIN_LETTERS_IN_WORD:
             return False
@@ -82,31 +96,19 @@ class GameDictionary:
                 return False
         return True
 
-    @staticmethod
-    def _get_first_letter_group(word: Word, parent: dict, default: dict or list):
-        if word.first_letter not in parent.keys():
-            parent[word.first_letter] = default
-        return parent[word.first_letter]
-
-    @staticmethod
-    def _get_unique_letters_group(word: Word, parent: dict, default: dict or list):
-        if len(word.unique_letters) not in parent.keys():
-            parent[len(word.unique_letters)] = default
-        return parent[len(word.unique_letters)]
-
-    def _add_word_to_words_by_first_letter(self, word: Word):
-        first_letter_group = self._get_first_letter_group(
-            word, self._words_by_first_letter, {}
+    def _add_word_to_words_by_first_letter(self, word: Word) -> None:
+        first_letter_group = self._words_by_first_letter.setdefault(
+            word.first_letter, {}
         )
-        uniques_group = self._get_unique_letters_group(word, first_letter_group, [])
+        uniques_group = first_letter_group.setdefault(word.unique_letters, [])
         uniques_group.append(word)
 
-    def _add_word_to_words_by_uniques(self, word: Word):
-        uniques_group = self._get_unique_letters_group(word, self._words_by_uniques, {})
-        first_letter_group = self._get_first_letter_group(word, uniques_group, [])
+    def _add_word_to_words_by_uniques(self, word: Word) -> None:
+        uniques_group = self._words_by_uniques.setdefault(word, {})
+        first_letter_group = uniques_group.setdefault(word.first_letter, [])
         first_letter_group.append(word)
 
-    def create(self):
+    def create(self) -> None:
         """One word per line"""
         with self.word_list_file.open(mode="r") as word_list:
             for word_line in word_list:
@@ -119,7 +121,7 @@ class GameDictionary:
                 self._add_word_to_words_by_uniques(word)
                 self.valid_words += 1
 
-    def ordered_by_uniques(self):
+    def ordered_by_uniques(self) -> list[Word]:
         words_by_uniques = []
         for first_letters_groups in self._words_by_uniques.values():
             for first_letter_group in first_letters_groups.values():
@@ -127,7 +129,7 @@ class GameDictionary:
                     words_by_uniques.append(word)
         return words_by_uniques
 
-    def ordered_by_first_letter(self):
+    def ordered_by_first_letter(self) -> list[Word]:
         words_by_first_letter = []
         for uniques_groups in self._words_by_first_letter.values():
             for uniques_group in uniques_groups.values():

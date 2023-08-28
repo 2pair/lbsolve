@@ -69,3 +69,5 @@ def main():
     solutions = solver.get_solutions()
     for solution in solutions:
         print(solution)
+    else:
+        print("No solutions found")

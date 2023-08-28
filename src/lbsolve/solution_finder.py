@@ -35,6 +35,15 @@ class SolutionCandidate:
     def __eq__(self, other: SolutionCandidate) -> bool:
         return self.sequence == other.sequence
 
+    def __str__(self) -> str:
+        words = []
+        for word in self.sequence:
+            word_str = str(word)
+            words.append(word_str)
+        words = [str(word) for word in self.sequence]
+        joined = "-".join(words)
+        return joined
+
 
 class CandidateMap(Mapping):
     candidates_by_uniques_by_last_letter: dict[str, dict[int, list[SolutionCandidate]]]
@@ -72,8 +81,8 @@ class CandidateMap(Mapping):
             self.insert(candidate)
 
     def __getitem__(
-        self, lookup: str | int | tuple[str, int]
-    ) -> dict[list[SolutionCandidate]] | list[SolutionCandidate]:
+        self, lookup: str or int or tuple[str, int]
+    ) -> dict[list[SolutionCandidate]] or list[SolutionCandidate]:
         if isinstance(lookup, str):
             return self.candidates_by_uniques_by_last_letter.get(lookup, {})
         if isinstance(lookup, int):
@@ -124,7 +133,7 @@ class SolutionList(Mapping):
             for solution in solution_group
         ]
 
-    def __getitem__(self, lookup: int | tuple[int, int]) -> SolutionCandidate:
+    def __getitem__(self, lookup: int or tuple[int, int]) -> SolutionCandidate:
         if isinstance(lookup, int):
             return self.solutions_by_words[lookup]
         if isinstance(lookup, tuple):
@@ -162,7 +171,7 @@ class SolutionFinder:
     def _seed_candidates(self) -> CandidateMap:
         print("seeding candidates")
         new_candidates = CandidateMap()
-        for word in self.game_dictionary.ordered_by_uniques():
+        for word in self.game_dictionary.ordered_by_first_letter():
             candidate = SolutionCandidate(WordSequence(word))
             new_candidates.insert(candidate)
         return new_candidates
@@ -193,10 +202,19 @@ class SolutionFinder:
 
     @staticmethod
     def _add_word_to_solution_candidates(
-        solution_candidates: CandidateMap, new_word: Word
+        # This is actually a dict of lists
+        solution_candidates: dict[list[SolutionCandidate]],
+        new_word: Word,
     ) -> CandidateMap:
         new_solution_candidates = CandidateMap()
-        for solution_candidate in solution_candidates:
+        candidates = [
+            candidate
+            for candidate_list in solution_candidates.values()
+            for candidate in candidate_list
+        ]
+        for solution_candidate in candidates:
+            if new_word in solution_candidate.sequence:
+                continue
             new_candidate = solution_candidate.clone_and_extend(new_word)
             new_solution_candidates.insert(new_candidate)
         return new_solution_candidates
@@ -215,6 +233,8 @@ class SolutionFinder:
         new_candidates = CandidateMap()
         for word in self.game_dictionary.ordered_by_first_letter():
             partial_solution_group = self._solution_candidates[word.first_letter]
+            if not partial_solution_group:
+                continue
             child_candidates = self._add_word_to_solution_candidates(
                 partial_solution_group, word
             )

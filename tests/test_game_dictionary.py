@@ -1,4 +1,6 @@
 from copy import deepcopy
+import pytest
+
 from lbsolve.game_dictionary import GameDictionary, Word, WordSequence
 
 
@@ -9,6 +11,11 @@ class TestWord:
         assert word.first_letter == "b"
         assert word.last_letter == "o"
         assert word.unique_letters == {"b", "o"}
+
+    def test_wrong_type_init(self):
+        with pytest.raises(TypeError) as ctx:
+            Word(["w", "r", "o", "n", "g"])
+        assert "'word' should be type 'str', not 'list'." == str(ctx.value)
 
     def test_to_str(self):
         raw_word = "pleasant"
@@ -25,30 +32,52 @@ class TestWord:
         word_copy = deepcopy(word)
         assert word == word_copy
 
+    def test_factory(self):
+        rocket, ship = Word.factory("rocket", "ship")
+        assert isinstance(rocket, Word)
+        assert str(rocket) == "rocket"
+        assert isinstance(ship, Word)
+        assert str(ship) == "ship"
+
 
 class TestWordSequence:
+    def test_empty_init(self):
+        with pytest.raises(IndexError) as ctx:
+            WordSequence()
+        assert "One or more word expected." == str(ctx.value)
+
+    def test_wrong_type_init(self):
+        with pytest.raises(TypeError) as ctx:
+            WordSequence("wrong", "types")
+        assert "'words' should be instances of type 'Word', not 'str'." == str(
+            ctx.value
+        )
+
     def test_init(self):
-        word_sequence = WordSequence("big", "dirty", "stinking", "bass")
-        assert word_sequence._word_sequence == ("big", "dirty", "stinking", "bass")
+        words = Word.factory("big", "dirty", "stinking", "bass")
+        word_sequence = WordSequence(*words)
+        assert word_sequence._word_sequence == tuple(words)
 
     def test_len(self):
-        word_sequence = WordSequence("regrets", "look", "like", "texts")
+        words = Word.factory("regrets", "look", "like", "texts")
+        word_sequence = WordSequence(*words)
         assert len(word_sequence) == 4
 
     def test_get_item(self):
-        word_sequence = WordSequence("neighbors", "that", "should", "be", "friends")
-        assert word_sequence[0] == "neighbors"
-        assert word_sequence[-1] == "friends"
-        assert word_sequence[1:3] == ("that", "should")
+        words = Word.factory("neighbors", "that", "should", "be", "friends")
+        word_sequence = WordSequence(*words)
+        assert word_sequence[0] == Word("neighbors")
+        assert word_sequence[-1] == Word("friends")
+        assert word_sequence[1:3] == (Word("that"), Word("should"))
 
     def test_iter(self):
-        words = ["let", "mom", "sleep"]
+        words = Word.factory("let", "mom", "sleep")
         word_sequence = WordSequence(*words)
         for index, word in enumerate(word_sequence):
-            assert str(word) == words[index]
+            assert word == words[index]
 
     def test_in(self):
-        words = ["no", "sleep", "remix"]
+        words = Word.factory("no", "sleep", "remix")
         word_sequence = WordSequence(*words)
         for word in words:
             assert word in word_sequence
@@ -58,6 +87,12 @@ class TestWordSequence:
         word_sequence = WordSequence(*sequence)
         word_sequence_copy = deepcopy(word_sequence)
         assert word_sequence == word_sequence_copy
+
+    def test_to_str(self):
+        words = ["realistic", "canopy", "yank"]
+        sequence = Word.factory(*words)
+        word_sequence = WordSequence(*sequence)
+        str(word_sequence) == "-".join(words)
 
 
 class TestGameDictionary:
@@ -89,7 +124,7 @@ class TestGameDictionary:
         assert gd.word_is_valid("sat") is False
         assert gd.word_is_valid("rat") is False
 
-    def test_word_is_valid_colocated_letters(self):
+    def test_word_is_valid_collocated_letters(self):
         letter_groups = [
             ["a", "b", "c"],
             ["d", "e", "f"],
