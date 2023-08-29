@@ -10,7 +10,7 @@ class Word:
     _word: str
     first_letter: str
     last_letter: str
-    unique_letters: set[str]
+    unique_letters: frozenset[str]
 
     def __init__(self, word: str) -> None:
         if not isinstance(word, str):
@@ -20,7 +20,7 @@ class Word:
         self._word = word
         self.first_letter = self._word[0]
         self.last_letter = self._word[-1]
-        self.unique_letters = set(word)
+        self.unique_letters = frozenset(word)
 
     def __str__(self) -> str:
         return self._word
@@ -30,6 +30,9 @@ class Word:
 
     def __eq__(self, other) -> bool:
         return self._word == other._word
+    
+    def __hash__(self) -> int:
+        return self._word.__hash__()
 
     @staticmethod
     def factory(*words: str) -> list[Word]:

@@ -61,6 +61,12 @@ def main():
                     end="\r",
                     flush=True,
                 )
+            else:
+                print(
+                    f"found {len(solver._solution_candidates.linear_candidates)} candidates.",
+                    end="\r",
+                    flush=True,
+                )
         except KeyboardInterrupt:
             print("User requests stop.")
             break
@@ -71,3 +77,8 @@ def main():
         print(solution)
     else:
         print("No solutions found")
+        print("closest attempts:")
+        candidates = solver._solution_candidates.candidates_by_last_letter_by_uniques
+        max_letters = max(candidates.keys())
+        for candidate in candidates[max_letters]:
+            print(candidate)

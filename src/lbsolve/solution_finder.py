@@ -78,15 +78,31 @@ class CandidateMap(Mapping):
 
     def merge(self, other: Iterable) -> None:
         for candidate in other:
+            if candidate in self.linear_candidates:
+                continue
             self.insert(candidate)
 
     def __getitem__(
         self, lookup: str or int or tuple[str, int]
     ) -> dict[list[SolutionCandidate]] or list[SolutionCandidate]:
         if isinstance(lookup, str):
-            return self.candidates_by_uniques_by_last_letter.get(lookup, {})
+            candidates_by_uniques = self.candidates_by_uniques_by_last_letter.get(
+                lookup, {}
+            )
+            return [
+                candidate
+                for candidates in candidates_by_uniques.values()
+                for candidate in candidates
+            ]
         if isinstance(lookup, int):
-            return self.candidates_by_last_letter_by_uniques.get(lookup, {})
+            candidates_by_last_letter = self.candidates_by_last_letter_by_uniques.get(
+                lookup, {}
+            )
+            return [
+                candidate
+                for candidates in candidates_by_last_letter.values()
+                for candidate in candidates
+            ]
         if isinstance(lookup, tuple):
             if isinstance(lookup[0], str) and isinstance(lookup[1], int):
                 return self.candidates_by_uniques_by_last_letter.get(lookup[0], {}).get(
@@ -108,6 +124,7 @@ class CandidateMap(Mapping):
 
 class SolutionList(Mapping):
     solutions_by_words: OrderedDict[int, list[SolutionCandidate]]
+    linear_solutions = []
     count: int
 
     def __init__(self) -> None:
@@ -124,6 +141,7 @@ class SolutionList(Mapping):
                 self.solutions_by_words.move_to_end(key)
 
         solutions_list.append(solution)
+        self.linear_solutions.append(solution)
         self.count += 1
 
     def flatten(self) -> list[SolutionCandidate]:
@@ -139,6 +157,9 @@ class SolutionList(Mapping):
         if isinstance(lookup, tuple):
             return self.solutions_by_words[lookup[0]][lookup[1]]
         raise LookupError("Provided key type is not valid.")
+
+    def __contains__(self, item: object) -> bool:
+        return item in self.linear_solutions
 
     def __iter__(self) -> Generator[SolutionCandidate]:
         for solution_list in self.solutions_by_words.values():
@@ -202,16 +223,11 @@ class SolutionFinder:
 
     @staticmethod
     def _add_word_to_solution_candidates(
-        # This is actually a dict of lists
-        solution_candidates: dict[list[SolutionCandidate]],
+        solution_candidates: CandidateMap,
         new_word: Word,
     ) -> CandidateMap:
         new_solution_candidates = CandidateMap()
-        candidates = [
-            candidate
-            for candidate_list in solution_candidates.values()
-            for candidate in candidate_list
-        ]
+        candidates = solution_candidates[new_word.first_letter]
         for solution_candidate in candidates:
             if new_word in solution_candidate.sequence:
                 continue
@@ -225,6 +241,8 @@ class SolutionFinder:
         for new_candidate in candidates:
             if len(new_candidate.unique_letters) != num_game_letters:
                 continue
+            if new_candidate in self.solutions:
+                continue
             new_solutions.append(new_candidate)
             self._add_new_solution(new_solutions[-1])
         return new_solutions
@@ -232,11 +250,8 @@ class SolutionFinder:
     def _mutate_solution_candidates(self) -> int:
         new_candidates = CandidateMap()
         for word in self.game_dictionary.ordered_by_first_letter():
-            partial_solution_group = self._solution_candidates[word.first_letter]
-            if not partial_solution_group:
-                continue
             child_candidates = self._add_word_to_solution_candidates(
-                partial_solution_group, word
+                self._solution_candidates, word
             )
             new_candidates.merge(child_candidates)
 

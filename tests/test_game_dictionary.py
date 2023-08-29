@@ -148,6 +148,9 @@ class TestGameDictionary:
         assert gd.word_is_valid("head") is True
         assert gd.word_is_valid("lead") is True
 
+    def test__add_word_to_words_by_first_letter(self):
+        pass
+
     def test_create_from_file_all_good(self, monkeypatch, tmp_path):
         tmp_file = tmp_path / "test_dic.txt"
         tmp_file.write_text("apple\nbanana\ncherry\ndate\n")

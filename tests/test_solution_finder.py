@@ -9,18 +9,18 @@ from lbsolve.solution_finder import (
 )
 
 
-CANDIDATES = [
+CANDIDATES = (
     SolutionCandidate(WordSequence(*Word.factory("cat", "tap", "pat"))),
     SolutionCandidate(WordSequence(*Word.factory("rap", "par", "rat"))),
     SolutionCandidate(WordSequence(*Word.factory("car", "rig", "gal"))),
     SolutionCandidate(WordSequence(*Word.factory("car", "rip", "pat"))),
-]
+)
 
-SOLUTIONS = [
+SOLUTIONS = (
     SolutionCandidate(WordSequence(*Word.factory("consequential", "lap"))),
     SolutionCandidate(WordSequence(*Word.factory("forgiver", "reconciliation"))),
     SolutionCandidate(WordSequence(*Word.factory("visited", "doctor", "rash"))),
-]
+)
 
 
 class TestSolutionCandidate:
@@ -107,15 +107,15 @@ class TestCandidateMap:
         cm = CandidateMap()
         cm.insert(CANDIDATES[0])
         cm.insert(CANDIDATES[2])
-        assert cm["t"] == {4: [CANDIDATES[0]]}
-        assert cm["l"] == {6: [CANDIDATES[2]]}
+        assert cm["t"] == [CANDIDATES[0]]
+        assert cm["l"] == [CANDIDATES[2]]
 
     def test_getitem_by_uniques(self):
         cm = CandidateMap()
         cm.insert(CANDIDATES[0])
         cm.insert(CANDIDATES[2])
-        assert cm[4] == {"t": [CANDIDATES[0]]}
-        assert cm[6] == {"l": [CANDIDATES[2]]}
+        assert cm[4] == [CANDIDATES[0]]
+        assert cm[6] == [CANDIDATES[2]]
 
     def test_getitem_by_letter_and_uniques(self):
         cm = CandidateMap()
@@ -157,6 +157,17 @@ class TestCandidateMap:
         cm2.insert(CANDIDATES[3])
         cm1.merge(cm2)
         assert len(cm1) == 4
+        for index, candidate in enumerate(cm1):
+            assert candidate == CANDIDATES[index]
+
+    def test_merge_candidate_map_duplicates(self):
+        cm1 = CandidateMap()
+        cm1.insert(CANDIDATES[0])
+        cm2 = CandidateMap()
+        cm2.insert(CANDIDATES[0])
+        cm2.insert(CANDIDATES[1])
+        cm1.merge(cm2)
+        assert len(cm1) == 2
         for index, candidate in enumerate(cm1):
             assert candidate == CANDIDATES[index]
 
@@ -216,6 +227,12 @@ class TestSolutionList:
         with pytest.raises(LookupError) as ctx:
             sl[{"dogs!"}]
             assert "Provided key type is not valid." == str(ctx.value)
+
+    def test_contains(self):
+        sl = SolutionList()
+        sl.insert(SOLUTIONS[0])
+        assert SOLUTIONS[0] in sl
+        assert SOLUTIONS[1] not in sl
 
     def test_iter(self):
         sl = SolutionList()
@@ -318,8 +335,8 @@ class TestSolutionFinder:
         new_word = Word("trot")
         new_candidates = SolutionFinder._add_word_to_solution_candidates(cm, new_word)
         initial_word_sequence = CANDIDATES[0].sequence._word_sequence
-        candidates_by_uniques = list(new_candidates["t"].values())
-        new_word_sequence = candidates_by_uniques[0][0].sequence._word_sequence
+        candidates_by_uniques = new_candidates["t"]
+        new_word_sequence = candidates_by_uniques[0].sequence._word_sequence
         assert new_word_sequence == initial_word_sequence + (new_word,)
         no_candidates = SolutionFinder._add_word_to_solution_candidates(
             new_candidates, new_word
@@ -338,6 +355,21 @@ class TestSolutionFinder:
         for index, solution in enumerate(new_solutions):
             assert solution == SOLUTIONS[index]
 
+    def test__promote_candidates_duplicates(self, mock_game_dictionary):
+        cm1 = CandidateMap()
+        cm1.insert(SOLUTIONS[0])
+        cm1.insert(SOLUTIONS[1])
+        sf = SolutionFinder(mock_game_dictionary)
+        new_solutions = sf._promote_candidates(cm1)
+        assert len(new_solutions) == 2
+        assert len(sf.solutions) == 2
+        cm2 = CandidateMap()
+        cm2.insert(SOLUTIONS[0])
+        cm2.insert(SOLUTIONS[1])
+        new_solutions = sf._promote_candidates(cm1)
+        assert len(new_solutions) == 0
+        assert len(sf.solutions) == 2
+
     def test__mutate_solution_candidates(self, mock_game_dictionary):
         word_list = [
             "car",
@@ -348,11 +380,10 @@ class TestSolutionFinder:
             "drain",
             "end",
             "noun",
-            "nearly",
+            "nearby",
         ]
-        # Shortest solution: could -> drain -> nearly
-        # Longest solution:  care  -> end -> drain -> noun -> nearly
-        # Shortest dead ends: car, nearly
+        # Shortest solution: could -> drain -> nearby
+        # Longest solution:  cold|could -> dare  -> end -> drain -> noun -> nearby
         words = Word.factory(*word_list)
         mock_game_dictionary.ordered_by_first_letter.return_value = words
         sf = SolutionFinder(mock_game_dictionary)
@@ -361,27 +392,83 @@ class TestSolutionFinder:
         sf._mutate_solution_candidates()
         assert len(sf._solution_candidates) == 20
         assert len(sf.solutions) == 0
-        sf._mutate_solution_candidates()
-        for candidate in sf._solution_candidates:
-            print(candidate)
-        assert len(sf._solution_candidates) == 42
-        assert len(sf.solutions) == 1
-        assert str(sf.solutions[3, 0]) == "could-drain-nothing"
-        sf._mutate_solution_candidates()
-        assert len(sf._solution_candidates) == 82
-        sf._mutate_solution_candidates()
-        assert len(sf._solution_candidates) == 151
-        sf._mutate_solution_candidates()
-        assert len(sf._solution_candidates) == 266
-        sf._mutate_solution_candidates()
-        assert len(sf._solution_candidates) == 452
-        sf._mutate_solution_candidates()
-        assert len(sf._solution_candidates) == 744
-        sf._mutate_solution_candidates()
-        assert len(sf._solution_candidates) == 1189
-        sf._mutate_solution_candidates()
-        assert len(sf._solution_candidates) == 1848
-        sf._mutate_solution_candidates()
-        assert len(sf._solution_candidates) == 2798
-        sf._mutate_solution_candidates()
-        assert len(sf._solution_candidates) == 2798
+        generation = 1
+        final_candidate_count = 0
+        last_candidate_count = 0
+        while True:
+            sf._mutate_solution_candidates()
+            generation += 1
+            assert len(sf._solution_candidates) >= last_candidate_count
+            last_candidate_count = len(sf._solution_candidates)
+            if generation == 2:
+                assert len(sf.solutions) == 1
+                assert str(sf.solutions[3, 0]) == "could-drain-nearby"
+            if generation == len(word_list):
+                final_candidate_count = len(sf._solution_candidates)
+            if generation > len(word_list):
+                assert final_candidate_count == last_candidate_count
+                if generation == len(word_list) + 2:
+                    break
+        assert max(sf.solutions.solutions_by_words.keys()) == 6
+        assert min(sf.solutions.solutions_by_words.keys()) == 3
+
+    def test__find_solutions(self, mocker, mock_game_dictionary):
+        calls = 0
+        solution_at_call = 5
+
+        def mock_solutions():
+            nonlocal calls
+            while True:
+                calls += 1
+                yield 1 if solution_at_call == calls else 0
+
+        mocker.patch("lbsolve.solution_finder.SolutionFinder._seed_candidates")
+        mock_mutate = mocker.patch(
+            "lbsolve.solution_finder.SolutionFinder._mutate_solution_candidates"
+        )
+        mock_mutate.side_effect = mock_solutions()
+        sf = SolutionFinder(mock_game_dictionary)
+        sf._thread_should_stop = False
+        sf._find_solutions()
+        assert calls == solution_at_call + 1
+
+    def test__find_solutions_max_depth(self, mocker, mock_game_dictionary):
+        calls = 0
+
+        def mock_solutions():
+            nonlocal calls
+            while True:
+                calls += 1
+                yield 0
+
+        mocker.patch("lbsolve.solution_finder.SolutionFinder._seed_candidates")
+        mock_mutate = mocker.patch(
+            "lbsolve.solution_finder.SolutionFinder._mutate_solution_candidates"
+        )
+        mock_mutate.side_effect = mock_solutions()
+        sf = SolutionFinder(mock_game_dictionary)
+        sf._thread_should_stop = False
+        sf.max_depth = 5
+        sf._find_solutions()
+        assert calls == sf.max_depth
+
+    def test__find_solutions_should_stop(self, mocker, mock_game_dictionary):
+        calls = 0
+        sf = SolutionFinder(mock_game_dictionary)
+        def mock_solutions():
+            nonlocal calls
+            nonlocal sf
+            while True:
+                calls += 1
+                if calls == 10:
+                    sf._thread_should_stop = True
+                yield 0
+
+        mocker.patch("lbsolve.solution_finder.SolutionFinder._seed_candidates")
+        mock_mutate = mocker.patch(
+            "lbsolve.solution_finder.SolutionFinder._mutate_solution_candidates"
+        )
+        mock_mutate.side_effect = mock_solutions()
+        sf._thread_should_stop = False
+        sf._find_solutions()
+        assert calls == 10
