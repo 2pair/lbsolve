@@ -96,14 +96,19 @@ class TestWordSequence:
 
 
 class TestGameDictionary:
+    def test_normalize_letter_groups(self):
+        letter_groups = (("A", "B", "C"), ("D", "E", "F"))
+        normalized = GameDictionary._normalize_letter_groups(letter_groups)
+        assert normalized == (("a", "b", "c"), ("d", "e", "f"))
+
     def test_get_letter_candidates_all(self):
-        letter_groups = [["a", "b", "c"], ["d", "e", "f"]]
+        letter_groups = (("a", "b", "c"), ("d", "e", "f"))
         gd = GameDictionary("", letter_groups)
         candidates = gd.get_letter_candidates()
         assert candidates == ["a", "b", "c", "d", "e", "f"]
 
     def test_get_letter_candidates_other_sides(self):
-        letter_groups = [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]
+        letter_groups = (("a", "b", "c"), ("d", "e", "f"), ("g", "h", "i"))
         gd = GameDictionary("", letter_groups)
         candidates = gd.get_letter_candidates("g")
         assert candidates == ["a", "b", "c", "d", "e", "f"]
@@ -111,12 +116,12 @@ class TestGameDictionary:
         assert candidates == ["d", "e", "f", "g", "h", "i"]
 
     def test_word_is_valid_invalid_letters(self):
-        letter_groups = [
-            ["a", "b", "c"],
-            ["d", "e", "f"],
-            ["g", "h", "i"],
-            ["j", "k", "l"],
-        ]
+        letter_groups = (
+            ("a", "b", "c"),
+            ("d", "e", "f"),
+            ("g", "h", "i"),
+            ("j", "k", "l"),
+        )
         gd = GameDictionary("", letter_groups)
         assert gd.word_is_valid("") is False
         assert gd.word_is_valid("\t") is False
@@ -125,24 +130,24 @@ class TestGameDictionary:
         assert gd.word_is_valid("rat") is False
 
     def test_word_is_valid_collocated_letters(self):
-        letter_groups = [
-            ["a", "b", "c"],
-            ["d", "e", "f"],
-            ["g", "h", "i"],
-            ["j", "k", "l"],
-        ]
+        letter_groups = (
+            ("a", "b", "c"),
+            ("d", "e", "f"),
+            ("g", "h", "i"),
+            ("j", "k", "l"),
+        )
         gd = GameDictionary("", letter_groups)
         assert gd.word_is_valid("bat") is False
         assert gd.word_is_valid("hide") is False
         assert gd.word_is_valid("lack") is False
 
     def test_word_is_valid_true(self):
-        letter_groups = [
-            ["a", "b", "c"],
-            ["d", "e", "f"],
-            ["g", "h", "i"],
-            ["j", "k", "l"],
-        ]
+        letter_groups = (
+            ("a", "b", "c"),
+            ("d", "e", "f"),
+            ("g", "h", "i"),
+            ("j", "k", "l"),
+        )
         gd = GameDictionary("", letter_groups)
         assert gd.word_is_valid("beg") is True
         assert gd.word_is_valid("head") is True

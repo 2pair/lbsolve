@@ -268,7 +268,20 @@ class TestSolutionFinder:
     @pytest.fixture
     def mock_game_dictionary(self, mocker):
         m_dictionary = mocker.patch("lbsolve.solution_finder.GameDictionary")
-        m_dictionary.get_letter_candidates.return_value = 12
+        m_dictionary.get_letter_candidates.return_value = [
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+            "f",
+            "g",
+            "h",
+            "i",
+            "j",
+            "k",
+            "l",
+        ]  # only care about the list length here
         return m_dictionary
 
     def test__seed_candidates(self, mock_game_dictionary):

@@ -237,7 +237,7 @@ class SolutionFinder:
 
     def _promote_candidates(self, candidates: CandidateMap) -> list[SolutionCandidate]:
         new_solutions = []
-        num_game_letters = self.game_dictionary.get_letter_candidates()
+        num_game_letters = len(self.game_dictionary.get_letter_candidates())
         for new_candidate in candidates:
             if len(new_candidate.unique_letters) != num_game_letters:
                 continue

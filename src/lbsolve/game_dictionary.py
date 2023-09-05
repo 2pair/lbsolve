@@ -71,15 +71,28 @@ class GameDictionary:
     _words_by_first_letter: dict[str, dict[int, str]]
     _words_by_uniques: dict[int, dict[str, str]]
 
-    def __init__(self, word_list_file: Path, game_letter_groups) -> None:
+    def __init__(
+        self, word_list_file: Path, game_letter_groups: tuple[tuple[str, 3], 4]
+    ) -> None:
         self.word_list_file = word_list_file
-        self.letter_groups = game_letter_groups
+        self.letter_groups = self._normalize_letter_groups(game_letter_groups)
         self.valid_words = 0
         self.invalid_words = 0
         self._words_by_first_letter = {}
         self._words_by_uniques = {}
 
-    def get_letter_candidates(self, current_letter="") -> list[tuple[str]]:
+    @staticmethod
+    def _normalize_letter_groups(
+        letter_groups: tuple[tuple[str, 3], 4]
+    ) -> tuple[tuple[str, 3], 4]:
+        normalize_letter_groups = []
+        for letter_group in letter_groups:
+            normalize_letter_groups.append(
+                tuple(letter.lower() for letter in letter_group)
+            )
+        return tuple(normalize_letter_groups)
+
+    def get_letter_candidates(self, current_letter="") -> list[str]:
         """Letters on sides that don't contain this letter."""
         candidates = []
         for letter_group in self.letter_groups:
