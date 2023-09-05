@@ -53,10 +53,10 @@ class CandidateMap(Mapping):
 
     def __init__(self) -> None:
         super().__init__()
-        self.count = 0
         self.candidates_by_uniques_by_last_letter = {}
         self.candidates_by_last_letter_by_uniques = {}
         self.linear_candidates = []
+        self.count = 0
 
     def insert(self, candidate: SolutionCandidate) -> None:
         solutions_by_uniques = self.candidates_by_uniques_by_last_letter.setdefault(
@@ -130,6 +130,7 @@ class SolutionList(Mapping):
     def __init__(self) -> None:
         super().__init__()
         self.solutions_by_words = OrderedDict()
+        self.linear_solutions = []
         self.count = 0
 
     def insert(self, solution: SolutionCandidate) -> None:
@@ -145,11 +146,7 @@ class SolutionList(Mapping):
         self.count += 1
 
     def flatten(self) -> list[SolutionCandidate]:
-        return [
-            solution
-            for solution_group in self.solutions_by_words.values()
-            for solution in solution_group
-        ]
+        return self.linear_solutions
 
     def __getitem__(self, lookup: int or tuple[int, int]) -> SolutionCandidate:
         if isinstance(lookup, int):
@@ -168,6 +165,9 @@ class SolutionList(Mapping):
 
     def __len__(self) -> int:
         return self.count
+
+    def __eq__(self, other: object) -> bool:
+        return self.linear_solutions == other.linear_solutions
 
 
 class SolutionFinder:

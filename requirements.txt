@@ -1,10 +1,13 @@
+bandit
 black
 coverage
 flake8
 flake8-pyproject
 mock
+pylint
 pytest
 pytest-cov
 pytest-mock
+pytest-xdist
 sortedcontainers
 -e .

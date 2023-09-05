@@ -30,7 +30,7 @@ class Word:
 
     def __eq__(self, other) -> bool:
         return self._word == other._word
-    
+
     def __hash__(self) -> int:
         return self._word.__hash__()
 

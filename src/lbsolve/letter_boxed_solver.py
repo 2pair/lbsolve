@@ -63,7 +63,8 @@ def main():
                 )
             else:
                 print(
-                    f"found {len(solver._solution_candidates.linear_candidates)} candidates.",
+                    f"found {len(solver._solution_candidates.linear_candidates)} "
+                    "candidates.",
                     end="\r",
                     flush=True,
                 )
@@ -77,8 +78,10 @@ def main():
         print(solution)
     else:
         print("No solutions found")
-        print("closest attempts:")
         candidates = solver._solution_candidates.candidates_by_last_letter_by_uniques
-        max_letters = max(candidates.keys())
+        max_letters = max(candidates.keys()) if candidates.keys() else 0
+        if not max_letters:
+            return
+        print("closest attempts:")
         for candidate in candidates[max_letters]:
             print(candidate)

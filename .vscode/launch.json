@@ -7,10 +7,16 @@
         {
             "name": "Debug Tests",
             "type": "python",
-            "request": "test",
+            "request": "launch",
+            "purpose": ["debug-test"],
             "console": "integratedTerminal",
+            "redirectOutput": true,
             "justMyCode": false,
-            "env": {"PYTEST_ADDOPTS": "--no-cov"}
+            "env": {"PYTEST_ADDOPTS": "-n 1 --no-cov"},
+            "pythonArgs": ["-X frozen_modules=off"],
+            "autoReload": {
+                "enable": true
+              }
         }
     ]
 }

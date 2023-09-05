@@ -9,18 +9,23 @@ from lbsolve.solution_finder import (
 )
 
 
-CANDIDATES = (
-    SolutionCandidate(WordSequence(*Word.factory("cat", "tap", "pat"))),
-    SolutionCandidate(WordSequence(*Word.factory("rap", "par", "rat"))),
-    SolutionCandidate(WordSequence(*Word.factory("car", "rig", "gal"))),
-    SolutionCandidate(WordSequence(*Word.factory("car", "rip", "pat"))),
-)
+@pytest.fixture
+def candidates():
+    return (
+        SolutionCandidate(WordSequence(*Word.factory("cat", "tap", "pat"))),
+        SolutionCandidate(WordSequence(*Word.factory("rap", "par", "rat"))),
+        SolutionCandidate(WordSequence(*Word.factory("car", "rig", "gal"))),
+        SolutionCandidate(WordSequence(*Word.factory("car", "rip", "pat"))),
+    )
 
-SOLUTIONS = (
-    SolutionCandidate(WordSequence(*Word.factory("consequential", "lap"))),
-    SolutionCandidate(WordSequence(*Word.factory("forgiver", "reconciliation"))),
-    SolutionCandidate(WordSequence(*Word.factory("visited", "doctor", "rash"))),
-)
+
+@pytest.fixture
+def solutions():
+    return (
+        SolutionCandidate(WordSequence(*Word.factory("consequential", "lap"))),
+        SolutionCandidate(WordSequence(*Word.factory("forgiver", "reconciliation"))),
+        SolutionCandidate(WordSequence(*Word.factory("visited", "doctor", "rash"))),
+    )
 
 
 class TestSolutionCandidate:
@@ -74,70 +79,70 @@ class TestSolutionCandidate:
 
 
 class TestCandidateMap:
-    def test_insert(self):
+    def test_insert(self, candidates):
         cm = CandidateMap()
-        cm.insert(CANDIDATES[0])
+        cm.insert(candidates[0])
         assert cm.count == 1
-        assert cm.candidates_by_uniques_by_last_letter["t"][4] == [CANDIDATES[0]]
-        assert cm.candidates_by_last_letter_by_uniques[4]["t"] == [CANDIDATES[0]]
-        cm.insert(CANDIDATES[1])
+        assert cm.candidates_by_uniques_by_last_letter["t"][4] == [candidates[0]]
+        assert cm.candidates_by_last_letter_by_uniques[4]["t"] == [candidates[0]]
+        cm.insert(candidates[1])
         assert cm.count == 2
         assert cm.candidates_by_uniques_by_last_letter["t"][4] == [
-            CANDIDATES[0],
-            CANDIDATES[1],
+            candidates[0],
+            candidates[1],
         ]
         assert cm.candidates_by_last_letter_by_uniques[4]["t"] == [
-            CANDIDATES[0],
-            CANDIDATES[1],
+            candidates[0],
+            candidates[1],
         ]
 
-    def test_len(self):
+    def test_len(self, candidates):
         cm = CandidateMap()
-        cm.insert(CANDIDATES[0])
+        cm.insert(candidates[0])
         assert len(cm) == 1
 
-    def test_iter(self):
+    def test_iter(self, candidates):
         cm = CandidateMap()
-        cm.insert(CANDIDATES[0])
-        cm.insert(CANDIDATES[1])
+        cm.insert(candidates[0])
+        cm.insert(candidates[1])
         for index, candidate in enumerate(cm):
-            assert candidate == CANDIDATES[index]
+            assert candidate == candidates[index]
 
-    def test_getitem_by_letter(self):
+    def test_getitem_by_letter(self, candidates):
         cm = CandidateMap()
-        cm.insert(CANDIDATES[0])
-        cm.insert(CANDIDATES[2])
-        assert cm["t"] == [CANDIDATES[0]]
-        assert cm["l"] == [CANDIDATES[2]]
+        cm.insert(candidates[0])
+        cm.insert(candidates[2])
+        assert cm["t"] == [candidates[0]]
+        assert cm["l"] == [candidates[2]]
 
-    def test_getitem_by_uniques(self):
+    def test_getitem_by_uniques(self, candidates):
         cm = CandidateMap()
-        cm.insert(CANDIDATES[0])
-        cm.insert(CANDIDATES[2])
-        assert cm[4] == [CANDIDATES[0]]
-        assert cm[6] == [CANDIDATES[2]]
+        cm.insert(candidates[0])
+        cm.insert(candidates[2])
+        assert cm[4] == [candidates[0]]
+        assert cm[6] == [candidates[2]]
 
-    def test_getitem_by_letter_and_uniques(self):
+    def test_getitem_by_letter_and_uniques(self, candidates):
         cm = CandidateMap()
-        cm.insert(CANDIDATES[0])
-        cm.insert(CANDIDATES[2])
-        cm.insert(CANDIDATES[3])
-        assert cm["t", 4] == [CANDIDATES[0]]
-        assert cm["l", 6] == [CANDIDATES[2]]
-        assert cm["t", 6] == [CANDIDATES[3]]
+        cm.insert(candidates[0])
+        cm.insert(candidates[2])
+        cm.insert(candidates[3])
+        assert cm["t", 4] == [candidates[0]]
+        assert cm["l", 6] == [candidates[2]]
+        assert cm["t", 6] == [candidates[3]]
 
-    def test_getitem_by_uniques_and_letters(self):
+    def test_getitem_by_uniques_and_letters(self, candidates):
         cm = CandidateMap()
-        cm.insert(CANDIDATES[0])
-        cm.insert(CANDIDATES[2])
-        cm.insert(CANDIDATES[3])
-        assert cm[4, "t"] == [CANDIDATES[0]]
-        assert cm[6, "l"] == [CANDIDATES[2]]
-        assert cm[6, "t"] == [CANDIDATES[3]]
+        cm.insert(candidates[0])
+        cm.insert(candidates[2])
+        cm.insert(candidates[3])
+        assert cm[4, "t"] == [candidates[0]]
+        assert cm[6, "l"] == [candidates[2]]
+        assert cm[6, "t"] == [candidates[3]]
 
-    def test_getitem_by_invalid(self):
+    def test_getitem_by_invalid(self, candidates):
         cm = CandidateMap()
-        cm.insert(CANDIDATES[0])
+        cm.insert(candidates[0])
         with pytest.raises(LookupError) as ctx:
             cm[2.3]
             assert "Provided key type is not valid." == str(ctx.value)
@@ -148,105 +153,115 @@ class TestCandidateMap:
             cm["t", "l"]
             assert "Provided key type is not valid." == str(ctx.value)
 
-    def test_merge_candidate_map(self):
+    def test_merge_candidate_map(self, candidates):
         cm1 = CandidateMap()
-        cm1.insert(CANDIDATES[0])
-        cm1.insert(CANDIDATES[1])
+        cm1.insert(candidates[0])
+        cm1.insert(candidates[1])
         cm2 = CandidateMap()
-        cm2.insert(CANDIDATES[2])
-        cm2.insert(CANDIDATES[3])
+        cm2.insert(candidates[2])
+        cm2.insert(candidates[3])
         cm1.merge(cm2)
         assert len(cm1) == 4
         for index, candidate in enumerate(cm1):
-            assert candidate == CANDIDATES[index]
+            assert candidate == candidates[index]
 
-    def test_merge_candidate_map_duplicates(self):
+    def test_merge_candidate_map_duplicates(self, candidates):
         cm1 = CandidateMap()
-        cm1.insert(CANDIDATES[0])
+        cm1.insert(candidates[0])
         cm2 = CandidateMap()
-        cm2.insert(CANDIDATES[0])
-        cm2.insert(CANDIDATES[1])
+        cm2.insert(candidates[0])
+        cm2.insert(candidates[1])
         cm1.merge(cm2)
         assert len(cm1) == 2
         for index, candidate in enumerate(cm1):
-            assert candidate == CANDIDATES[index]
+            assert candidate == candidates[index]
 
-    def test_merge_list(self):
-        candidate_list = [CANDIDATES[0], CANDIDATES[1]]
+    def test_merge_list(self, candidates):
+        candidate_list = [candidates[0], candidates[1]]
         cm = CandidateMap()
         cm.merge(candidate_list)
         assert len(cm) == 2
         for index, candidate in enumerate(cm):
-            assert candidate == CANDIDATES[index]
+            assert candidate == candidates[index]
 
 
 class TestSolutionList:
-    def test_insert_maintaining_order(self):
+    def test_insert_maintaining_order(self, solutions):
         sl = SolutionList()
-        sl.insert(SOLUTIONS[2])
+        sl.insert(solutions[2])
         assert list(sl.solutions_by_words.keys())[0] == 3
-        sl.insert(SOLUTIONS[0])
+        sl.insert(solutions[0])
         assert list(sl.solutions_by_words.keys())[0] == 2
         assert list(sl.solutions_by_words.keys())[1] == 3
 
-    def test_insert(self):
+    def test_insert(self, solutions):
         sl = SolutionList()
-        sl.insert(SOLUTIONS[0])
+        sl.insert(solutions[0])
         assert sl.count == 1
-        assert sl.solutions_by_words[2] == [SOLUTIONS[0]]
-        sl.insert(SOLUTIONS[1])
+        assert sl.solutions_by_words[2] == [solutions[0]]
+        sl.insert(solutions[1])
         assert sl.count == 2
         assert sl.solutions_by_words[2] == [
-            SOLUTIONS[0],
-            SOLUTIONS[1],
+            solutions[0],
+            solutions[1],
         ]
-        sl.insert(SOLUTIONS[2])
+        sl.insert(solutions[2])
         assert sl.count == 3
-        assert sl.solutions_by_words[3] == [SOLUTIONS[2]]
+        assert sl.solutions_by_words[3] == [solutions[2]]
 
-    def test_flatter(self):
+    def test_flatten(self, solutions):
         sl = SolutionList()
-        sl.insert(SOLUTIONS[0])
-        sl.insert(SOLUTIONS[1])
-        sl.insert(SOLUTIONS[2])
+        sl.insert(solutions[0])
+        sl.insert(solutions[1])
+        sl.insert(solutions[2])
         solutions = sl.flatten()
         assert isinstance(solutions, list)
         for index, solution in enumerate(solutions):
-            assert solution == SOLUTIONS[index]
+            assert solution == solutions[index]
 
-    def test_getitem(self):
+    def test_getitem(self, solutions):
         sl = SolutionList()
-        sl.insert(SOLUTIONS[0])
-        sl.insert(SOLUTIONS[1])
-        assert sl[2] == [SOLUTIONS[0], SOLUTIONS[1]]
-        assert sl[2, 1] == SOLUTIONS[1]
+        sl.insert(solutions[0])
+        sl.insert(solutions[1])
+        assert sl[2] == [solutions[0], solutions[1]]
+        assert sl[2, 1] == solutions[1]
 
-    def test_getitem_invalid(self):
+    def test_getitem_invalid(self, solutions):
         sl = SolutionList()
-        sl.insert(SOLUTIONS[0])
+        sl.insert(solutions[0])
         with pytest.raises(LookupError) as ctx:
             sl[{"dogs!"}]
             assert "Provided key type is not valid." == str(ctx.value)
 
-    def test_contains(self):
+    def test_contains(self, solutions):
         sl = SolutionList()
-        sl.insert(SOLUTIONS[0])
-        assert SOLUTIONS[0] in sl
-        assert SOLUTIONS[1] not in sl
+        sl.insert(solutions[0])
+        assert solutions[0] in sl
+        assert solutions[1] not in sl
 
-    def test_iter(self):
+    def test_iter(self, solutions):
         sl = SolutionList()
-        sl.insert(SOLUTIONS[2])
-        sl.insert(SOLUTIONS[0])
-        sl.insert(SOLUTIONS[1])
+        sl.insert(solutions[2])
+        sl.insert(solutions[0])
+        sl.insert(solutions[1])
         for index, solution in enumerate(sl):
-            assert solution == SOLUTIONS[index]
+            assert solution == solutions[index]
 
-    def test_len(self):
+    def test_len(self, solutions):
         sl = SolutionList()
-        sl.insert(SOLUTIONS[2])
-        sl.insert(SOLUTIONS[0])
+        sl.insert(solutions[2])
+        sl.insert(solutions[0])
         assert len(sl) == 2
+
+    def test_eq(self, solutions):
+        solution_lists = []
+        for i in range(2):
+            sl = SolutionList()
+            sl.insert(solutions[2])
+            sl.insert(solutions[0])
+            solution_lists.append(sl)
+        assert solution_lists[0] == solution_lists[1]
+        assert solution_lists[0] is not solution_lists[1]
 
 
 class TestSolutionFinder:
@@ -295,46 +310,46 @@ class TestSolutionFinder:
         assert running is True
         assert mock_is_alive.called_once()
 
-    def test_get_solutions(self, mock_game_dictionary):
+    def test_get_solutions(self, solutions, mock_game_dictionary):
         sf = SolutionFinder(mock_game_dictionary)
         sf.solutions = SolutionList()
-        sf.solutions.insert(SOLUTIONS[0])
-        sf.solutions.insert(SOLUTIONS[2])
-        solutions = sf.get_solutions()
-        assert len(solutions) == 2
-        assert solutions is not sf.solutions
-        assert solutions[2][0] == SOLUTIONS[0]
-        assert sf.solutions.solutions_by_words[2][0] is SOLUTIONS[0]
-        assert solutions[2][0] is not sf.solutions.solutions_by_words[2][0]
+        sf.solutions.insert(solutions[0])
+        sf.solutions.insert(solutions[2])
+        new_solutions = sf.get_solutions()
+        assert len(new_solutions) == 2
+        assert new_solutions[2][0] == solutions[0]
+        assert new_solutions is not sf.solutions
+        assert sf.solutions.solutions_by_words[2][0] is solutions[0]
+        assert new_solutions[2][0] is not sf.solutions.solutions_by_words[2][0]
 
-    def test__add_new_solutions(self, mocker, mock_game_dictionary):
+    def test__add_new_solutions(self, solutions, mocker, mock_game_dictionary):
         mock_print = mocker.patch("builtins.print")
         sf = SolutionFinder(mock_game_dictionary)
-        sf._add_new_solution(SOLUTIONS[0])
+        sf._add_new_solution(solutions[0])
         assert len(sf.solutions) == 1
-        assert sf.solutions[2][0] == SOLUTIONS[0]
+        assert sf.solutions[2][0] == solutions[0]
         mock_print.assert_called_once_with(
             f"Found new solution: "
             f"{' - '.join([str(word) for word in sf.solutions[2][0].sequence])}"
         )
 
-    def test_add_word_to_solution_candidates(self):
+    def test_add_word_to_solution_candidates(self, solutions, candidates):
         cm = CandidateMap()
-        cm.insert(CANDIDATES[0])
-        cm.insert(CANDIDATES[1])
+        cm.insert(candidates[0])
+        cm.insert(candidates[1])
         new_word = Word("trajectory")
         new_candidates = SolutionFinder._add_word_to_solution_candidates(cm, new_word)
         for index, candidate in enumerate(new_candidates):
-            initial_word_sequence = CANDIDATES[index].sequence._word_sequence
+            initial_word_sequence = candidates[index].sequence._word_sequence
             new_word_sequence = candidate.sequence._word_sequence
             assert new_word_sequence == initial_word_sequence + (new_word,)
 
-    def test_add_word_to_solution_candidates_twice(self):
+    def test_add_word_to_solution_candidates_twice(self, solutions, candidates):
         cm = CandidateMap()
-        cm.insert(CANDIDATES[0])
+        cm.insert(candidates[0])
         new_word = Word("trot")
         new_candidates = SolutionFinder._add_word_to_solution_candidates(cm, new_word)
-        initial_word_sequence = CANDIDATES[0].sequence._word_sequence
+        initial_word_sequence = candidates[0].sequence._word_sequence
         candidates_by_uniques = new_candidates["t"]
         new_word_sequence = candidates_by_uniques[0].sequence._word_sequence
         assert new_word_sequence == initial_word_sequence + (new_word,)
@@ -343,29 +358,29 @@ class TestSolutionFinder:
         )
         assert len(no_candidates) == 0
 
-    def test__promote_candidates(self, mock_game_dictionary):
+    def test__promote_candidates(self, candidates, solutions, mock_game_dictionary):
         cm = CandidateMap()
-        cm.insert(CANDIDATES[0])
-        cm.insert(SOLUTIONS[0])
-        cm.insert(SOLUTIONS[1])
+        cm.insert(candidates[0])
+        cm.insert(solutions[0])
+        cm.insert(solutions[1])
         sf = SolutionFinder(mock_game_dictionary)
         new_solutions = sf._promote_candidates(cm)
         assert len(new_solutions) == 2
-        assert CANDIDATES[0] not in new_solutions
+        assert candidates[0] not in new_solutions
         for index, solution in enumerate(new_solutions):
-            assert solution == SOLUTIONS[index]
+            assert solution == solutions[index]
 
-    def test__promote_candidates_duplicates(self, mock_game_dictionary):
+    def test__promote_candidates_duplicates(self, solutions, mock_game_dictionary):
         cm1 = CandidateMap()
-        cm1.insert(SOLUTIONS[0])
-        cm1.insert(SOLUTIONS[1])
+        cm1.insert(solutions[0])
+        cm1.insert(solutions[1])
         sf = SolutionFinder(mock_game_dictionary)
         new_solutions = sf._promote_candidates(cm1)
         assert len(new_solutions) == 2
         assert len(sf.solutions) == 2
         cm2 = CandidateMap()
-        cm2.insert(SOLUTIONS[0])
-        cm2.insert(SOLUTIONS[1])
+        cm2.insert(solutions[0])
+        cm2.insert(solutions[1])
         new_solutions = sf._promote_candidates(cm1)
         assert len(new_solutions) == 0
         assert len(sf.solutions) == 2
@@ -455,6 +470,7 @@ class TestSolutionFinder:
     def test__find_solutions_should_stop(self, mocker, mock_game_dictionary):
         calls = 0
         sf = SolutionFinder(mock_game_dictionary)
+
         def mock_solutions():
             nonlocal calls
             nonlocal sf
