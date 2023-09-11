@@ -33,6 +33,16 @@
                 "--letter_groups", "ALO", "EMS", "CID", "FKV"
             ],
             "justMyCode": true
-        }
+        },
+        {
+            "name": "Run Module With Profiler",
+            "type": "python",
+            "request": "launch",
+            "module": "cProfile",
+            "args": [
+                "-o", ".profile", "-m", "lbsolve",
+                "--letter_groups", "ALO", "EMS", "CID", "FKV"
+            ]
+        },
     ]
 }

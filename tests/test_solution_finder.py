@@ -323,6 +323,14 @@ class TestSolutionFinder:
         assert running is True
         assert mock_is_alive.called_once()
 
+    def test_solution_count(self, solutions, mock_game_dictionary):
+        sf = SolutionFinder(mock_game_dictionary)
+        sf.solutions = SolutionList()
+        sf.solutions.insert(solutions[0])
+        sf.solutions.insert(solutions[2])
+        count = sf.solutions_count()
+        assert count == 2
+    
     def test_get_solutions(self, solutions, mock_game_dictionary):
         sf = SolutionFinder(mock_game_dictionary)
         sf.solutions = SolutionList()
@@ -440,7 +448,7 @@ class TestSolutionFinder:
         assert max(sf.solutions.solutions_by_words.keys()) == 6
         assert min(sf.solutions.solutions_by_words.keys()) == 3
 
-    def test__find_solutions(self, mocker, mock_game_dictionary):
+    def test__find_solutions_breadth_first(self, mocker, mock_game_dictionary):
         calls = 0
         solution_at_call = 5
 
@@ -457,10 +465,10 @@ class TestSolutionFinder:
         mock_mutate.side_effect = mock_solutions()
         sf = SolutionFinder(mock_game_dictionary)
         sf._thread_should_stop = False
-        sf._find_solutions()
+        sf._find_solutions_breadth_first()
         assert calls == solution_at_call + 1
 
-    def test__find_solutions_max_depth(self, mocker, mock_game_dictionary):
+    def test__find_solutions_breadth_first_max_depth(self, mocker, mock_game_dictionary):
         calls = 0
 
         def mock_solutions():
@@ -477,10 +485,10 @@ class TestSolutionFinder:
         sf = SolutionFinder(mock_game_dictionary)
         sf._thread_should_stop = False
         sf.max_depth = 5
-        sf._find_solutions()
+        sf._find_solutions_breadth_first()
         assert calls == sf.max_depth
 
-    def test__find_solutions_should_stop(self, mocker, mock_game_dictionary):
+    def test__find_solutions_breadth_first_should_stop(self, mocker, mock_game_dictionary):
         calls = 0
         sf = SolutionFinder(mock_game_dictionary)
 
@@ -499,5 +507,5 @@ class TestSolutionFinder:
         )
         mock_mutate.side_effect = mock_solutions()
         sf._thread_should_stop = False
-        sf._find_solutions()
+        sf._find_solutions_breadth_first()
         assert calls == 10

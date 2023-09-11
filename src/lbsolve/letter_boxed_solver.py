@@ -53,11 +53,12 @@ def main():
     solver.start()
     while solver.running():
         try:
-            solutions = solver.get_solutions()
-            if solutions:
+            solutions_count = solver.solutions_count()
+            if solutions_count:
+                solutions = solver.get_solutions()
                 print(
                     f"found {len(solutions)} solutions. current best solution "
-                    f"is {' - '.join(solutions[0])}",
+                    f"is {str(solutions.linear_solutions[0])}",
                     end="\r",
                     flush=True,
                 )
@@ -68,20 +69,20 @@ def main():
                     end="\r",
                     flush=True,
                 )
+            time.sleep(.25)
         except KeyboardInterrupt:
             print("User requests stop.")
             break
-        finally:
-            solver.stop()
+    solver.stop()
     solutions = solver.get_solutions()
     for solution in solutions:
         print(solution)
     else:
         print("No solutions found")
-        candidates = solver._solution_candidates.candidates_by_last_letter_by_uniques
-        max_letters = max(candidates.keys()) if candidates.keys() else 0
+        unique_counts = solver._solution_candidates.candidates_by_last_letter_by_uniques.keys()
+        max_letters = max(unique_counts) if unique_counts else 0
         if not max_letters:
             return
         print("closest attempts:")
-        for candidate in candidates[max_letters]:
+        for candidate in solver._solution_candidates[max_letters]:
             print(candidate)

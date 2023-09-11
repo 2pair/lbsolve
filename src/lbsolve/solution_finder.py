@@ -3,6 +3,7 @@ from collections import OrderedDict
 from collections.abc import Mapping
 from copy import deepcopy
 from threading import Lock, Thread
+import time
 from typing import Generator, Iterable
 
 from lbsolve.game_dictionary import GameDictionary, Word, WordSequence
@@ -124,7 +125,7 @@ class CandidateMap(Mapping):
 
 class SolutionList(Mapping):
     solutions_by_words: OrderedDict[int, list[SolutionCandidate]]
-    linear_solutions = []
+    linear_solutions = list[SolutionCandidate]
     count: int
 
     def __init__(self) -> None:
@@ -185,7 +186,7 @@ class SolutionFinder:
         self.max_depth = max_depth
         self.solutions = SolutionList()
         self._solutions_lock = Lock()
-        self._solver_thread = Thread(target=self._find_solutions, daemon=True)
+        self._solver_thread = Thread(target=self._find_solutions_depth_first, daemon=True)
         self._thread_should_stop = False
         self._solution_candidates = CandidateMap()
 
@@ -207,6 +208,9 @@ class SolutionFinder:
 
     def running(self) -> bool:
         return self._solver_thread.is_alive()
+
+    def solutions_count(self) -> int:
+        return len(self.solutions)
 
     def get_solutions(self) -> SolutionList:
         with self._solutions_lock:
@@ -249,12 +253,15 @@ class SolutionFinder:
 
     def _mutate_solution_candidates(self) -> int:
         new_candidates = CandidateMap()
-        for word in self.game_dictionary.ordered_by_first_letter():
+        start_time = time.time()
+        for i, word in enumerate(self.game_dictionary.ordered_by_first_letter()):
             child_candidates = self._add_word_to_solution_candidates(
                 self._solution_candidates, word
             )
             new_candidates.merge(child_candidates)
-
+            if i % 20 == 0:
+                print(f"mutated 20 words in {time.time() - start_time} s")
+                start_time = time.time()
         new_solutions = self._promote_candidates(new_candidates)
         partial_solutions = filter(
             lambda candidate: candidate not in new_solutions, new_candidates
@@ -262,7 +269,11 @@ class SolutionFinder:
         self._solution_candidates.merge(partial_solutions)
         return len(new_solutions)
 
-    def _find_solutions(self) -> None:
+    def _find_solutions_breadth_first(self) -> None:
+        """
+        This function will iterate through all words, finding all other 
+        words that can follow after it.
+        """
         self._solution_candidates = self._seed_candidates()
         have_solutions = False
         depth = 0
@@ -273,6 +284,37 @@ class SolutionFinder:
                 have_solutions = True
             if have_solutions and new_solutions_count == 0:
                 # If adding more words didn't help we can stop looking
+                print("stopping search because no more solutions were found.")
                 break
             if self.max_depth and depth >= self.max_depth:
+                print("stopping search because max depth has been reached.")
                 break
+        print("Search has ended.")
+
+    def _find_solutions_depth_first(self) -> None:
+        one_word_candidates = CandidateMap()
+        num_game_letters = len(self.game_dictionary.get_letter_candidates())
+        one_word_solutions = CandidateMap()
+        for word in self.game_dictionary.get_words_with_uniques(num_game_letters):
+            one_word_solutions.insert(SolutionCandidate(WordSequence(word)))
+            self._promote_candidates(one_word_solutions)
+
+        for number in reversed(range(1, num_game_letters)):
+            print(f"processing words with {number} unique letters")
+            for word in self.game_dictionary.get_words_with_uniques(number):
+                candidate = SolutionCandidate(WordSequence(word))
+                one_word_candidates.insert(candidate)
+            print(f"Generated {len(one_word_candidates)} candidates with root words.")
+            last_candidates_len = len(self._solution_candidates)
+            last_solutions_count = self.solutions_count()
+            for word in self.game_dictionary.get_words_with_uniques(number):
+                child_candidates = self._add_word_to_solution_candidates(
+                    one_word_candidates, word
+                )
+                new_solutions = self._promote_candidates(child_candidates)
+                partial_solutions = filter(
+                    lambda candidate: candidate not in new_solutions, child_candidates
+                )
+                self._solution_candidates.merge(partial_solutions)
+            print(f"Created {len(self._solution_candidates) - last_candidates_len} two word candidates")
+            print(f"Found {self.solutions_count() - last_solutions_count} new solutions")

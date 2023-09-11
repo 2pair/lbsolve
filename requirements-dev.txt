@@ -9,5 +9,5 @@ pytest
 pytest-cov
 pytest-mock
 pytest-xdist
-sortedcontainers
+snakeviz
 -e .

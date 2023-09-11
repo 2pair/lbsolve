@@ -120,7 +120,7 @@ class GameDictionary:
         uniques_group.append(word)
 
     def _add_word_to_words_by_uniques(self, word: Word) -> None:
-        uniques_group = self._words_by_uniques.setdefault(word, {})
+        uniques_group = self._words_by_uniques.setdefault(len(word.unique_letters), {})
         first_letter_group = uniques_group.setdefault(word.first_letter, [])
         first_letter_group.append(word)
 
@@ -152,3 +152,23 @@ class GameDictionary:
                 for word in uniques_group:
                     words_by_first_letter.append(word)
         return words_by_first_letter
+
+    def get_words_with_first_letter(self, lookup: str) -> list[Word]:
+        words_by_uniques = self._words_by_first_letter.get(
+            lookup, {}
+        )
+        return [
+            word
+            for words in words_by_uniques.values()
+            for word in words
+        ]
+    
+    def get_words_with_uniques(self, lookup: int) -> list[Word]:
+        words_by_last_letter = self._words_by_uniques.get(
+            lookup, {}
+        )
+        return [
+            word
+            for words in words_by_last_letter.values()
+            for word in words
+        ]

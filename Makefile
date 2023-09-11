@@ -8,3 +8,7 @@ lint:
 .PHONY: .bandit_baseline
 .bandit_baseline:
 	bandit -f json -o .bandit_baseline -r src
+
+.PHONY: profile
+profile:
+	snakeviz .profile
