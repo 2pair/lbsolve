@@ -1,3 +1,4 @@
+"""Takes CLI arguments and runs the solution finder.x"""
 from argparse import ArgumentParser
 from pathlib import Path
 import time
@@ -12,6 +13,7 @@ def split_letter_group(group):
 
 
 def main():
+    """Main function to run when executed as a module."""
     arg_parser = ArgumentParser(description="Solves NYT Letter Boxed puzzles")
     arg_parser.add_argument(
         "--letter_groups",
@@ -58,18 +60,20 @@ def main():
                 solutions = solver.get_solutions()
                 print(
                     f"found {len(solutions)} solutions. current best solution "
-                    f"is {str(solutions.linear_solutions[0])}",
-                    end="\r",
-                    flush=True,
-                )
+                    f"is {str(solutions.linear_solutions[0])}"
+                )  # ,
+                #  end="\r",
+                #   flush=True,
+                # )
             else:
                 print(
                     f"found {len(solver._solution_candidates.linear_candidates)} "
-                    "candidates.",
-                    end="\r",
-                    flush=True,
-                )
-            time.sleep(.25)
+                    "candidates."
+                )  # ,
+                # end="\r",
+                # flush=True,
+                # )
+            time.sleep(0.25)
         except KeyboardInterrupt:
             print("User requests stop.")
             break
@@ -77,12 +81,12 @@ def main():
     solutions = solver.get_solutions()
     for solution in solutions:
         print(solution)
-    else:
-        print("No solutions found")
-        unique_counts = solver._solution_candidates.candidates_by_last_letter_by_uniques.keys()
+    if not solutions:
+        print("No solutions found!")
+        unique_counts = (
+            solver._solution_candidates.candidates_by_last_letter_by_uniques.keys()
+        )
         max_letters = max(unique_counts) if unique_counts else 0
         if not max_letters:
             return
-        print("closest attempts:")
-        for candidate in solver._solution_candidates[max_letters]:
-            print(candidate)
+        print(f"closest attempt: {solver._solution_candidates[max_letters][0]}")

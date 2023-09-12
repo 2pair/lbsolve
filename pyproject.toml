@@ -36,6 +36,10 @@ exclude =[
     '__pycache__',
     'htmlcov',
 ]
+
+[tool.pylint]
+ignore="tests"
+
 [tool.coverage.run]
 branch = true
 source = ['src']

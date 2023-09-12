@@ -2,8 +2,8 @@ import pytest
 
 from lbsolve.game_dictionary import Word, WordSequence
 from lbsolve.solution_finder import (
-    CandidateMap,
-    SolutionCandidate,
+    PartialSolutionMap,
+    PartialSolution,
     SolutionFinder,
     SolutionList,
 )
@@ -12,31 +12,31 @@ from lbsolve.solution_finder import (
 @pytest.fixture
 def candidates():
     return (
-        SolutionCandidate(WordSequence(*Word.factory("cat", "tap", "pat"))),
-        SolutionCandidate(WordSequence(*Word.factory("rap", "par", "rat"))),
-        SolutionCandidate(WordSequence(*Word.factory("car", "rig", "gal"))),
-        SolutionCandidate(WordSequence(*Word.factory("car", "rip", "pat"))),
+        PartialSolution(WordSequence(*Word.factory("cat", "tap", "pat"))),
+        PartialSolution(WordSequence(*Word.factory("rap", "par", "rat"))),
+        PartialSolution(WordSequence(*Word.factory("car", "rig", "gal"))),
+        PartialSolution(WordSequence(*Word.factory("car", "rip", "pat"))),
     )
 
 
 @pytest.fixture
 def solutions():
     return (
-        SolutionCandidate(WordSequence(*Word.factory("consequential", "lap"))),
-        SolutionCandidate(WordSequence(*Word.factory("forgiver", "reconciliation"))),
-        SolutionCandidate(WordSequence(*Word.factory("visited", "doctor", "rash"))),
+        PartialSolution(WordSequence(*Word.factory("consequential", "lap"))),
+        PartialSolution(WordSequence(*Word.factory("forgiver", "reconciliation"))),
+        PartialSolution(WordSequence(*Word.factory("visited", "doctor", "rash"))),
     )
 
 
-class TestSolutionCandidate:
+class TestPartialSolution:
     def test_length(self):
         sequence = Word.factory("cat", "tap", "pat")
-        sc = SolutionCandidate(WordSequence(*sequence))
+        sc = PartialSolution(WordSequence(*sequence))
         assert len(sc) == len(sequence)
 
     def test_clone_and_extend_one(self):
         base_word = Word("rear")
-        sc = SolutionCandidate(WordSequence(base_word))
+        sc = PartialSolution(WordSequence(base_word))
         word = Word("racecar")
         new_sc = sc.clone_and_extend(word)
         assert new_sc.sequence == WordSequence(base_word, word)
@@ -46,7 +46,7 @@ class TestSolutionCandidate:
 
     def test_lone_and_extend_multiple(self):
         base_word = Word("rear")
-        sc = SolutionCandidate(WordSequence(base_word))
+        sc = PartialSolution(WordSequence(base_word))
         word_1 = Word("racecar")
         word_2 = Word("react")
         sc_2 = sc.clone_and_extend(word_1)
@@ -57,7 +57,7 @@ class TestSolutionCandidate:
         assert sc_3.unique_letters == {"r", "a", "c", "e", "t"}
 
     def test_clone_and_extend_value_error(self):
-        sc = SolutionCandidate(WordSequence(Word("racecar")))
+        sc = PartialSolution(WordSequence(Word("racecar")))
         with pytest.raises(ValueError) as ctx:
             sc.clone_and_extend(Word("driver"))
         assert (
@@ -67,97 +67,97 @@ class TestSolutionCandidate:
 
     def test_eq(self):
         sequence = Word.factory("cat", "tap", "pat")
-        sc1 = SolutionCandidate(WordSequence(*sequence))
-        sc2 = SolutionCandidate(WordSequence(*sequence))
+        sc1 = PartialSolution(WordSequence(*sequence))
+        sc2 = PartialSolution(WordSequence(*sequence))
         assert sc1 == sc2
         assert sc1 is not sc2
 
     def test_to_str(self):
         words = ["cake", "eating", "guy"]
-        sc = SolutionCandidate(WordSequence(*Word.factory(*words)))
+        sc = PartialSolution(WordSequence(*Word.factory(*words)))
         assert str(sc) == "-".join(words)
 
 
-class TestCandidateMap:
+class TestPartialSolutionMap:
     def test_insert(self, candidates):
-        cm = CandidateMap()
-        cm.insert(candidates[0])
-        assert cm.count == 1
-        assert cm.candidates_by_uniques_by_last_letter["t"][4] == [candidates[0]]
-        assert cm.candidates_by_last_letter_by_uniques[4]["t"] == [candidates[0]]
-        cm.insert(candidates[1])
-        assert cm.count == 2
-        assert cm.candidates_by_uniques_by_last_letter["t"][4] == [
+        ps = PartialSolutionMap()
+        ps.insert(candidates[0])
+        assert ps.count == 1
+        assert ps.candidates_by_uniques_by_last_letter["t"][4] == [candidates[0]]
+        assert ps.candidates_by_last_letter_by_uniques[4]["t"] == [candidates[0]]
+        ps.insert(candidates[1])
+        assert ps.count == 2
+        assert ps.candidates_by_uniques_by_last_letter["t"][4] == [
             candidates[0],
             candidates[1],
         ]
-        assert cm.candidates_by_last_letter_by_uniques[4]["t"] == [
+        assert ps.candidates_by_last_letter_by_uniques[4]["t"] == [
             candidates[0],
             candidates[1],
         ]
 
     def test_len(self, candidates):
-        cm = CandidateMap()
-        cm.insert(candidates[0])
-        assert len(cm) == 1
+        ps = PartialSolutionMap()
+        ps.insert(candidates[0])
+        assert len(ps) == 1
 
     def test_iter(self, candidates):
-        cm = CandidateMap()
-        cm.insert(candidates[0])
-        cm.insert(candidates[1])
-        for index, candidate in enumerate(cm):
+        ps = PartialSolutionMap()
+        ps.insert(candidates[0])
+        ps.insert(candidates[1])
+        for index, candidate in enumerate(ps):
             assert candidate == candidates[index]
 
     def test_getitem_by_letter(self, candidates):
-        cm = CandidateMap()
-        cm.insert(candidates[0])
-        cm.insert(candidates[2])
-        assert cm["t"] == [candidates[0]]
-        assert cm["l"] == [candidates[2]]
+        ps = PartialSolutionMap()
+        ps.insert(candidates[0])
+        ps.insert(candidates[2])
+        assert ps["t"] == [candidates[0]]
+        assert ps["l"] == [candidates[2]]
 
     def test_getitem_by_uniques(self, candidates):
-        cm = CandidateMap()
-        cm.insert(candidates[0])
-        cm.insert(candidates[2])
-        assert cm[4] == [candidates[0]]
-        assert cm[6] == [candidates[2]]
+        ps = PartialSolutionMap()
+        ps.insert(candidates[0])
+        ps.insert(candidates[2])
+        assert ps[4] == [candidates[0]]
+        assert ps[6] == [candidates[2]]
 
     def test_getitem_by_letter_and_uniques(self, candidates):
-        cm = CandidateMap()
-        cm.insert(candidates[0])
-        cm.insert(candidates[2])
-        cm.insert(candidates[3])
-        assert cm["t", 4] == [candidates[0]]
-        assert cm["l", 6] == [candidates[2]]
-        assert cm["t", 6] == [candidates[3]]
+        ps = PartialSolutionMap()
+        ps.insert(candidates[0])
+        ps.insert(candidates[2])
+        ps.insert(candidates[3])
+        assert ps["t", 4] == [candidates[0]]
+        assert ps["l", 6] == [candidates[2]]
+        assert ps["t", 6] == [candidates[3]]
 
     def test_getitem_by_uniques_and_letters(self, candidates):
-        cm = CandidateMap()
-        cm.insert(candidates[0])
-        cm.insert(candidates[2])
-        cm.insert(candidates[3])
-        assert cm[4, "t"] == [candidates[0]]
-        assert cm[6, "l"] == [candidates[2]]
-        assert cm[6, "t"] == [candidates[3]]
+        ps = PartialSolutionMap()
+        ps.insert(candidates[0])
+        ps.insert(candidates[2])
+        ps.insert(candidates[3])
+        assert ps[4, "t"] == [candidates[0]]
+        assert ps[6, "l"] == [candidates[2]]
+        assert ps[6, "t"] == [candidates[3]]
 
     def test_getitem_by_invalid(self, candidates):
-        cm = CandidateMap()
-        cm.insert(candidates[0])
+        ps = PartialSolutionMap()
+        ps.insert(candidates[0])
         with pytest.raises(LookupError) as ctx:
-            cm[2.3]
+            ps[2.3]
             assert "Provided key type is not valid." == str(ctx.value)
         with pytest.raises(LookupError) as ctx:
-            cm[1, 2]
+            ps[1, 2]
             assert "Provided key type is not valid." == str(ctx.value)
         with pytest.raises(LookupError) as ctx:
-            cm["t", "l"]
+            ps["t", "l"]
             assert "Provided key type is not valid." == str(ctx.value)
 
     def test_merge_candidate_map(self, candidates):
-        cm1 = CandidateMap()
+        cm1 = PartialSolutionMap()
         cm1.insert(candidates[0])
         cm1.insert(candidates[1])
-        cm2 = CandidateMap()
+        cm2 = PartialSolutionMap()
         cm2.insert(candidates[2])
         cm2.insert(candidates[3])
         cm1.merge(cm2)
@@ -166,9 +166,9 @@ class TestCandidateMap:
             assert candidate == candidates[index]
 
     def test_merge_candidate_map_duplicates(self, candidates):
-        cm1 = CandidateMap()
+        cm1 = PartialSolutionMap()
         cm1.insert(candidates[0])
-        cm2 = CandidateMap()
+        cm2 = PartialSolutionMap()
         cm2.insert(candidates[0])
         cm2.insert(candidates[1])
         cm1.merge(cm2)
@@ -178,10 +178,10 @@ class TestCandidateMap:
 
     def test_merge_list(self, candidates):
         candidate_list = [candidates[0], candidates[1]]
-        cm = CandidateMap()
-        cm.merge(candidate_list)
-        assert len(cm) == 2
-        for index, candidate in enumerate(cm):
+        ps = PartialSolutionMap()
+        ps.merge(candidate_list)
+        assert len(ps) == 2
+        for index, candidate in enumerate(ps):
             assert candidate == candidates[index]
 
 
@@ -291,7 +291,7 @@ class TestSolutionFinder:
         new_candidates = sf._seed_candidates()
         assert len(new_candidates) == 3
         for index, candidate in enumerate(new_candidates):
-            assert isinstance(candidate, SolutionCandidate)
+            assert isinstance(candidate, PartialSolution)
             assert len(candidate) == 1
             assert candidate.sequence[0] == mock_dictionary[index]
 
@@ -330,7 +330,7 @@ class TestSolutionFinder:
         sf.solutions.insert(solutions[2])
         count = sf.solutions_count()
         assert count == 2
-    
+
     def test_get_solutions(self, solutions, mock_game_dictionary):
         sf = SolutionFinder(mock_game_dictionary)
         sf.solutions = SolutionList()
@@ -355,21 +355,21 @@ class TestSolutionFinder:
         )
 
     def test_add_word_to_solution_candidates(self, solutions, candidates):
-        cm = CandidateMap()
-        cm.insert(candidates[0])
-        cm.insert(candidates[1])
+        ps = PartialSolutionMap()
+        ps.insert(candidates[0])
+        ps.insert(candidates[1])
         new_word = Word("trajectory")
-        new_candidates = SolutionFinder._add_word_to_solution_candidates(cm, new_word)
+        new_candidates = SolutionFinder._add_word_to_solution_candidates(ps, new_word)
         for index, candidate in enumerate(new_candidates):
             initial_word_sequence = candidates[index].sequence._word_sequence
             new_word_sequence = candidate.sequence._word_sequence
             assert new_word_sequence == initial_word_sequence + (new_word,)
 
     def test_add_word_to_solution_candidates_twice(self, solutions, candidates):
-        cm = CandidateMap()
-        cm.insert(candidates[0])
+        ps = PartialSolutionMap()
+        ps.insert(candidates[0])
         new_word = Word("trot")
-        new_candidates = SolutionFinder._add_word_to_solution_candidates(cm, new_word)
+        new_candidates = SolutionFinder._add_word_to_solution_candidates(ps, new_word)
         initial_word_sequence = candidates[0].sequence._word_sequence
         candidates_by_uniques = new_candidates["t"]
         new_word_sequence = candidates_by_uniques[0].sequence._word_sequence
@@ -380,26 +380,26 @@ class TestSolutionFinder:
         assert len(no_candidates) == 0
 
     def test__promote_candidates(self, candidates, solutions, mock_game_dictionary):
-        cm = CandidateMap()
-        cm.insert(candidates[0])
-        cm.insert(solutions[0])
-        cm.insert(solutions[1])
+        ps = PartialSolutionMap()
+        ps.insert(candidates[0])
+        ps.insert(solutions[0])
+        ps.insert(solutions[1])
         sf = SolutionFinder(mock_game_dictionary)
-        new_solutions = sf._promote_candidates(cm)
+        new_solutions = sf._promote_candidates(ps)
         assert len(new_solutions) == 2
         assert candidates[0] not in new_solutions
         for index, solution in enumerate(new_solutions):
             assert solution == solutions[index]
 
     def test__promote_candidates_duplicates(self, solutions, mock_game_dictionary):
-        cm1 = CandidateMap()
+        cm1 = PartialSolutionMap()
         cm1.insert(solutions[0])
         cm1.insert(solutions[1])
         sf = SolutionFinder(mock_game_dictionary)
         new_solutions = sf._promote_candidates(cm1)
         assert len(new_solutions) == 2
         assert len(sf.solutions) == 2
-        cm2 = CandidateMap()
+        cm2 = PartialSolutionMap()
         cm2.insert(solutions[0])
         cm2.insert(solutions[1])
         new_solutions = sf._promote_candidates(cm1)
@@ -468,7 +468,9 @@ class TestSolutionFinder:
         sf._find_solutions_breadth_first()
         assert calls == solution_at_call + 1
 
-    def test__find_solutions_breadth_first_max_depth(self, mocker, mock_game_dictionary):
+    def test__find_solutions_breadth_first_max_depth(
+        self, mocker, mock_game_dictionary
+    ):
         calls = 0
 
         def mock_solutions():
@@ -488,7 +490,9 @@ class TestSolutionFinder:
         sf._find_solutions_breadth_first()
         assert calls == sf.max_depth
 
-    def test__find_solutions_breadth_first_should_stop(self, mocker, mock_game_dictionary):
+    def test__find_solutions_breadth_first_should_stop(
+        self, mocker, mock_game_dictionary
+    ):
         calls = 0
         sf = SolutionFinder(mock_game_dictionary)
 
